@@ -1,4 +1,9 @@
 import { MongoClient, Db } from 'mongodb';
+import dns from 'dns';
+
+// Override DNS to use public resolvers — local network DNS blocks MongoDB SRV lookups
+dns.setDefaultResultOrder('ipv4first');
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Please add your Mongo URI to .env.local');
