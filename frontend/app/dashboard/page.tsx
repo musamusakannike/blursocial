@@ -34,6 +34,7 @@ function useCountdown(expiresAt?: Date | null) {
     if (!expiresAt) return;
 
     const target = new Date(expiresAt).getTime();
+    if (isNaN(target)) return;
 
     const tick = () => {
       const diff = target - Date.now();
@@ -106,7 +107,9 @@ function RoomCard({
         </div>
 
         <p className="text-sm text-[var(--text-tertiary)] mb-1">
-          Created {new Date(room.createdAt).toLocaleDateString()}
+          {room.createdAt
+            ? `Created ${new Date(room.createdAt).toLocaleDateString()}`
+            : 'Created recently'}
         </p>
 
         <p className="text-xs mb-4">
