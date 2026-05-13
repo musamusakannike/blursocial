@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Card from '@/components/Card';
+import { Durations } from '@/components/Durations';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
@@ -35,6 +36,7 @@ export default function DashboardScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
+  const [roomDuration, setRoomDuration] = useState(24);
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -101,7 +103,11 @@ export default function DashboardScreen() {
       const response = await fetch(`${API_URL}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: roomName, password: roomPassword }),
+        body: JSON.stringify({ 
+          name: roomName, 
+          password: roomPassword,
+          duration: roomDuration
+        }),
       });
 
       const data = await response.json();
@@ -286,6 +292,10 @@ export default function DashboardScreen() {
                 onChangeText={setRoomPassword}
                 secureTextEntry
                 autoCapitalize="none"
+              />
+              <Durations 
+                value={roomDuration}
+                onChange={setRoomDuration}
               />
               <View style={styles.modalActions}>
                 <Button
