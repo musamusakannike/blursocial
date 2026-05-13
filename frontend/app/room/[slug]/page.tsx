@@ -19,6 +19,13 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { nanoid } from 'nanoid';
 import Link from 'next/link';
+import { Haptics } from '@/lib/haptics';
+import {
+  requestNotificationPermission,
+  showNotification,
+  isNotificationEnabledForRoom,
+  setNotificationForRoom
+} from '@/lib/notifications';
 
 type ReactionSummary = {
   emoji: string;
@@ -265,6 +272,8 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   const [lastReadMessageIndex, setLastReadMessageIndex] = useState<number | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [hasAskedNotifications, setHasAskedNotifications] = useState(false);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -384,6 +393,28 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
     };
   }, [socket]);
 
+  useEffect(() => {
+    if (isVerified) {
+      const enabled = isNotificationEnabledForRoom(resolvedParams.slug);
+      setNotificationsEnabled(enabled);
+
+      if (!enabled && !hasAskedNotifications) {
+        const timer = setTimeout(async () => {
+          if (confirm(`Enable browser notifications for "${roomName}"?`)) {
+            const granted = await requestNotificationPermission();
+            if (granted) {
+              setNotificationsEnabled(true);
+              setNotificationForRoom(resolvedParams.slug, true);
+              toast.success('Notifications enabled!');
+            }
+          }
+          setHasAskedNotifications(true);
+        }, 5000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isVerified, roomName, resolvedParams.slug, hasAskedNotifications]);
+
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
@@ -419,6 +450,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
       await initializeRoom(data.room.id, ensureClientIdentity());
       setIsVerified(true);
     } catch (err) {
+      Haptics.error();
       toast.error('Something went wrong');
       setIsVerifying(false);
     }
@@ -482,7 +514,17 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
           messagesRef.current = next;
           return next;
         });
-        if (!isAtBottomRef.current) setUnreadCount((prev) => prev + 1);
+
+        if (document.hidden && isNotificationEnabledForRoom(resolvedParams.slug)) {
+          showNotification(`New message in ${roomNameRef.current || 'Blur Room'}`, {
+            body: message.content,
+          });
+        }
+
+        if (!isAtBottomRef.current) {
+          setUnreadCount((prev) => prev + 1);
+          Haptics.light();
+        }
       });
 
       newSocket.on('message-reactions-updated', (payload: { messageId: string; reactions: Array<{ emoji: string; count: number; hashes?: string[] }> }) => {
@@ -540,6 +582,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
     const payload = { roomSlug: resolvedParams.slug, content: newMessage, tempId, ...(replyingTo && { replyTo: { messageId: replyingTo.id, preview: replyingTo.content.substring(0, 100) } }) };
     if (socket && socket.connected) socket.emit('send-message', payload);
     else await sendMessageViaHttp(newMessage, tempId, replyingTo);
+    Haptics.light();
     setNewMessage('');
     setReplyingTo(null);
     inputRef.current?.focus();
@@ -783,6 +826,10 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+div>
     </div>
   );
 }

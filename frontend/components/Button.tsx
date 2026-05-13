@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+import { ButtonHTMLAttributes, ReactNode, MouseEvent } from 'react';
+import { Haptics } from '@/lib/haptics';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
@@ -16,8 +17,13 @@ export default function Button({
   isLoading,
   disabled,
   className = '',
+  onClick,
   ...props
 }: ButtonProps) {
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    Haptics.light();
+    if (onClick) onClick(e);
+  };
   const baseStyles = `
     relative overflow-hidden font-medium rounded-xl
     transition-all duration-200 ease-out
@@ -56,6 +62,7 @@ export default function Button({
     <button
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || isLoading}
+      onClick={handleClick}
       {...props}
     >
       {isLoading ? (
