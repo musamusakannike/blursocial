@@ -14,8 +14,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io, Socket } from 'socket.io-client';
-import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users } from 'lucide-react-native';
+import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users, ArrowDown, Copy } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import uuid from 'react-native-uuid';
+
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { Colors, Spacing, Radius, Shadows } from '@/constants/Colors';
@@ -322,6 +324,12 @@ export default function RoomScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const handleCopyMessage = async (content: string) => {
+    await Clipboard.setStringAsync(content);
+    showToast('Message copied!', 'success');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isFirstInGroup =
       index === 0 ||
@@ -404,6 +412,12 @@ export default function RoomScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Smile size={16} color={Colors.text.tertiary} strokeWidth={2} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleCopyMessage(item.content)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Copy size={16} color={Colors.text.tertiary} strokeWidth={2} />
           </Pressable>
         </View>
       </View>
