@@ -52,9 +52,34 @@ export default function RoomScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasAskedNotifications, setHasAskedNotifications] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [lastReadMessageIndex, setLastReadMessageIndex] = useState<number | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const isAtBottomRef = useRef(true);
+  const messagesRef = useRef<Message[]>([]);
+
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isAtBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+    isAtBottomRef.current = isAtBottom;
+    setShowScrollButton(!isAtBottom);
+    
+    if (isAtBottom) {
+      setUnreadCount(0);
+      setLastReadMessageIndex(messages.length - 1);
+    }
+  };
+
+  const scrollToBottom = () => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+    isAtBottomRef.current = true;
+    setShowScrollButton(false);
+    setUnreadCount(0);
+    setLastReadMessageIndex(messages.length - 1);
+  };
 
   useEffect(() => {
     verifyRoom();
@@ -135,6 +160,8 @@ export default function RoomScreen() {
 
       if (response.ok) {
         setMessages(data.messages);
+        messagesRef.current = data.messages;
+        setLastReadMessageIndex(data.messages.length - 1);
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -250,7 +277,11 @@ export default function RoomScreen() {
       }),
     };
 
-    setMessages((prev) => [...prev, optimisticMessage]);
+    setMessages((prev) => {
+      const next = [...prev, optimisticMessage];
+      messagesRef.current = next;
+      return next;
+    });
     setNewMessage('');
     setReplyingTo(null);
 
@@ -267,10 +298,7 @@ export default function RoomScreen() {
     });
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    scrollToBottom();
   };
 
   const handleReaction = (messageId: string, emoji: string) => {
@@ -300,16 +328,29 @@ export default function RoomScreen() {
       new Date(messages[index - 1].timestamp).getTime() - new Date(item.timestamp).getTime() >
         60000;
 
+    const showUnreadDivider = lastReadMessageIndex !== null && index === lastReadMessageIndex + 1;
+
     return (
-      <View style={styles.messageContainer}>
-        {isFirstInGroup && (
-          <Text style={styles.messageTime}>
-            {new Date(item.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
+      <View>
+        {showUnreadDivider && (
+          <View style={styles.unreadDivider}>
+            <View style={styles.unreadDividerLine} />
+            <View style={styles.unreadBadge}>
+              <View style={styles.unreadDot} />
+              <Text style={styles.unreadText}>UNREAD MESSAGES</Text>
+            </View>
+            <View style={styles.unreadDividerLine} />
+          </View>
         )}
+        <View style={styles.messageContainer}>
+          {isFirstInGroup && (
+            <Text style={styles.messageTime}>
+              {new Date(item.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          )}
         <Pressable
           onLongPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -431,15 +472,34 @@ export default function RoomScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.listContainer}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        />
+
+        {showScrollButton && (
+          <Pressable
+            style={styles.scrollButton}
+            onPress={scrollToBottom}
+          >
+            <ArrowDown size={20} color="#FFFFFF" strokeWidth={2.5} />
+            {unreadCount > 0 && (
+              <View style={styles.scrollBadge}>
+                <Text style={styles.scrollBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        )}
+      </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -746,6 +806,63 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.bg.tertiary,
+  },
+  reactionPickerEmoji: {
+    fontSize: 28,
+  },
+});
+r',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.bg.tertiary,
+  },
+  reactionPickerEmoji: {
+    fontSize: 28,
+  },
+});
+ext.primary,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.bg.tertiary,
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  reactionPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reactionPicker: {
+    flexDirection: 'row',
+    backgroundColor: Colors.bg.secondary,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    ...Shadows.lg,
+  },
+  reactionPickerButton: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.bg.tertiary,
+  },
+  reactionPickerEmoji: {
+    fontSize: 28,
+  },
+});
+r',
     borderRadius: Radius.sm,
     backgroundColor: Colors.bg.tertiary,
   },
