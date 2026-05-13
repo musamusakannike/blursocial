@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io, Socket } from 'socket.io-client';
-import { ArrowLeft, Send, Smile, X, CornerUpLeft } from 'lucide-react-native';
+import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users } from 'lucide-react-native';
 import uuid from 'react-native-uuid';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -51,6 +51,7 @@ export default function RoomScreen() {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasAskedNotifications, setHasAskedNotifications] = useState(false);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
@@ -148,6 +149,10 @@ export default function RoomScreen() {
     newSocket.on('connect', () => {
       console.log('Socket connected');
       newSocket.emit('join-room', slug);
+    });
+
+    newSocket.on('room-user-count', (count: number) => {
+      setOnlineCount(count);
     });
 
     newSocket.on('new-message', (message: Message) => {
@@ -410,7 +415,18 @@ export default function RoomScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {roomName}
           </Text>
-          <Text style={styles.headerSubtitle}>Anonymous Chat</Text>
+          <View style={styles.headerStatusContainer}>
+            {onlineCount !== null && (
+              <View style={styles.onlineCountContainer}>
+                <Users size={12} color={Colors.text.tertiary} strokeWidth={2} />
+                <Text style={styles.onlineCountText}>{onlineCount} online</Text>
+              </View>
+            )}
+            <View style={styles.statusDotContainer}>
+              <View style={styles.statusDot} />
+              <Text style={styles.headerSubtitle}>Connected</Text>
+            </View>
+          </View>
         </View>
         <View style={{ width: 24 }} />
       </View>
@@ -543,6 +559,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
+  },
+  headerStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  onlineCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  onlineCountText: {
+    fontSize: 12,
+    fontFamily: 'Manrope_400Regular',
+    color: Colors.text.tertiary,
+  },
+  statusDotContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
   },
   messagesList: {
     padding: Spacing.lg,
