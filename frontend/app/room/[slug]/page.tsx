@@ -275,6 +275,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasAskedNotifications, setHasAskedNotifications] = useState(false);
 
+  const roomNameRef = useRef<string>('');
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -331,6 +332,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   }, [getStorageKey]);
 
   useEffect(() => { clientHashRef.current = clientHash; }, [clientHash]);
+  useEffect(() => { roomNameRef.current = roomName; }, [roomName]);
 
   useEffect(() => {
     localReactionsRef.current = localReactions;
@@ -826,10 +828,6 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
           </div>
         </form>
       </div>
-    </div>
-  );
-}
-div>
     </div>
   );
 }
