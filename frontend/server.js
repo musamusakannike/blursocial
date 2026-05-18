@@ -22,6 +22,7 @@ const app = next({ dev, hostname: 'localhost', port });
 const handle = app.getRequestHandler();
 
 let db;
+let ttlIndexEnsured = false;
 
 async function connectToDatabase() {
   if (db) return db;
@@ -69,13 +70,18 @@ app.prepare().then(() => {
       io.to(roomSlug).emit('room-user-count', count);
     });
 
-    socket.on('disconnect', () => {
-      // Update count for all rooms this socket was in
+    socket.on('disconnecting', () => {
+      // 'disconnecting' fires before the socket leaves its rooms, so socket.rooms is still populated
       socket.rooms.forEach((roomSlug) => {
-        if (roomSlug === socket.id) return; // skip the default personal room
-        const count = io.sockets.adapter.rooms.get(roomSlug)?.size ?? 0;
+        if (roomSlug === socket.id) return; // skip the socket's own personal room
+        const room = io.sockets.adapter.rooms.get(roomSlug);
+        // subtract 1 because this socket is still counted but is leaving
+        const count = room ? Math.max(room.size - 1, 0) : 0;
         io.to(roomSlug).emit('room-user-count', count);
       });
+    });
+
+    socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
     });
 
@@ -178,16 +184,6 @@ app.prepare().then(() => {
         socket.emit('error', { message: 'Failed to update reaction' });
       }
     });
-
-    socket.on('disconnect', () => {
-      // Update count for all rooms this socket was in before disconnecting
-      socket.rooms.forEach((roomSlug) => {
-        if (roomSlug === socket.id) return;
-        const count = io.sockets.adapter.rooms.get(roomSlug)?.size ?? 0;
-        io.to(roomSlug).emit('room-user-count', count);
-      });
-      console.log('Client disconnected:', socket.id);
-    });
   });
 
   httpServer
@@ -195,8 +191,70 @@ app.prepare().then(() => {
       console.error(err);
       process.exit(1);
     })
-    .listen(port, () => {
+    .listen(port, async () => {
       console.log(`> Ready on http://localhost:${port}`);
       console.log(`> On your network: http://10.215.12.249:${port}`);
+
+      // ── Ensure TTL index exists on startup ──────────────────────────────────
+      // MongoDB TTL index deletes room documents automatically when expiresAt is reached.
+      // expireAfterSeconds: 0 = delete at the exact datetime stored in expiresAt.
+      // sparse: true = skip documents where expiresAt is null (permanent rooms).
+      try {
+        const database = await connectToDatabase();
+        await database.collection('rooms').createIndex(
+          { expiresAt: 1 },
+          { expireAfterSeconds: 0, sparse: true, name: 'rooms_ttl_expiry' }
+        );
+        console.log('> TTL index on rooms.expiresAt ensured');
+      } catch (err) {
+        console.warn('> TTL index creation skipped (may already exist):', err.message);
+      }
+
+      // ── Orphaned-message cleanup job ────────────────────────────────────────
+      // When MongoDB TTL deletes a room, its messages are left behind.
+      // This job runs every hour and removes messages whose room no longer exists.
+      async function cleanupOrphanedMessages() {
+        try {
+          const database = await connectToDatabase();
+
+          // Find all distinct roomIds referenced in messages
+          const messageRoomIds = await database
+            .collection('messages')
+            .distinct('roomId');
+
+          if (messageRoomIds.length === 0) return;
+
+          // Find which of those rooms still exist
+          const existingRooms = await database
+            .collection('rooms')
+            .find({ _id: { $in: messageRoomIds } }, { projection: { _id: 1 } })
+            .toArray();
+
+          const existingIds = new Set(existingRooms.map((r) => r._id.toString()));
+
+          // Collect roomIds that no longer have a room document
+          const orphanedRoomIds = messageRoomIds.filter(
+            (id) => !existingIds.has(id.toString())
+          );
+
+          if (orphanedRoomIds.length === 0) return;
+
+          const result = await database
+            .collection('messages')
+            .deleteMany({ roomId: { $in: orphanedRoomIds } });
+
+          if (result.deletedCount > 0) {
+            console.log(
+              `> Cleanup: removed ${result.deletedCount} orphaned message(s) from ${orphanedRoomIds.length} expired room(s)`
+            );
+          }
+        } catch (err) {
+          console.error('> Orphaned-message cleanup failed:', err.message);
+        }
+      }
+
+      // Run once immediately on startup, then every hour
+      cleanupOrphanedMessages();
+      setInterval(cleanupOrphanedMessages, 60 * 60 * 1000);
     });
 });

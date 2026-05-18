@@ -36,14 +36,20 @@ export async function GET(req: NextRequest) {
     io.on('connection', (socket) => {
       console.log('Client connected:', socket.id);
 
-      socket.on('join-room', (roomSlug: string) => {
+      socket.on('join-room', async (roomSlug: string) => {
         socket.join(roomSlug);
         console.log(`Socket ${socket.id} joined room ${roomSlug}`);
+        // Broadcast updated count to everyone in the room
+        const sockets = await io!.in(roomSlug).allSockets();
+        io!.to(roomSlug).emit('room-user-count', sockets.size);
       });
 
-      socket.on('leave-room', (roomSlug: string) => {
+      socket.on('leave-room', async (roomSlug: string) => {
         socket.leave(roomSlug);
         console.log(`Socket ${socket.id} left room ${roomSlug}`);
+        // Broadcast updated count after leaving
+        const sockets = await io!.in(roomSlug).allSockets();
+        io!.to(roomSlug).emit('room-user-count', sockets.size);
       });
 
       socket.on('send-message', async (data: { roomSlug: string; content: string; tempId: string; replyTo?: { messageId: string; preview: string } }) => {
@@ -162,6 +168,16 @@ export async function GET(req: NextRequest) {
           }
         }
       );
+
+      socket.on('disconnecting', async () => {
+        // Notify each room this socket was in about the updated count
+        for (const roomSlug of socket.rooms) {
+          if (roomSlug === socket.id) continue; // skip the socket's own room
+          const sockets = await io!.in(roomSlug).allSockets();
+          // subtract 1 because the socket hasn't fully left yet
+          io!.to(roomSlug).emit('room-user-count', Math.max(sockets.size - 1, 0));
+        }
+      });
 
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);

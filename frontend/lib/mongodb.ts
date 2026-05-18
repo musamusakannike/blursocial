@@ -32,7 +32,29 @@ if (process.env.NODE_ENV === 'development') {
 
 export async function getDb(): Promise<Db> {
   const client = await clientPromise;
-  return client.db('blur_chat');
+  const db = client.db('blur_chat');
+  await ensureIndexes(db);
+  return db;
+}
+
+let indexesEnsured = false;
+
+async function ensureIndexes(db: Db): Promise<void> {
+  if (indexesEnsured) return;
+  indexesEnsured = true;
+
+  try {
+    // TTL index: MongoDB automatically deletes room documents when expiresAt is reached.
+    // expireAfterSeconds: 0 means "delete at the exact time stored in expiresAt".
+    // sparse: true means documents where expiresAt is null/missing are ignored (permanent rooms).
+    await db.collection('rooms').createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0, sparse: true, name: 'rooms_ttl_expiry' }
+    );
+  } catch (err) {
+    // Index may already exist with different options — log but don't crash
+    console.warn('TTL index creation skipped (may already exist):', err);
+  }
 }
 
 export default clientPromise;

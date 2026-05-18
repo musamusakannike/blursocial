@@ -120,7 +120,7 @@ function useLongPress(callback: () => void, ms = 500) {
     []
   );
 
-  return { onMouseDown: start, onMouseUp: cancel, onMouseLeave: cancel, onTouchStart: start, onTouchEnd: cancel, onClick: click };
+  return { onMouseDown: start, onMouseUp: cancel, onMouseLeave: cancel, onTouchStart: start, onTouchEnd: cancel, onTouchMove: cancel, onClick: click };
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
@@ -784,7 +784,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
         )}
       </div>
 
-      <div className="bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-4 z-10 relative shrink-0">
+      <div className="bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-4 z-10 sticky bottom-0 shrink-0">
         <form onSubmit={handleSendMessage} className="max-w-5xl mx-auto">
           {replyingTo && (
             <div className="mb-3 flex items-start gap-3 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-xl p-3">
