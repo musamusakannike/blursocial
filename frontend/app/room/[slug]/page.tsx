@@ -698,8 +698,8 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
 
   // ── Chat UI ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col bg-[var(--bg-primary)]" style={{ height: '100dvh' }}>
-      <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-4 sm:px-6 py-4 shrink-0">
+    <div className="fixed inset-0 flex flex-col bg-[var(--bg-primary)]">
+      <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-4 sm:px-6 py-4 shrink-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
@@ -728,7 +728,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 relative"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6 relative"
       >
         <div className="max-w-5xl mx-auto space-y-4">
           {messages.length === 0 ? (
@@ -784,7 +784,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
         )}
       </div>
 
-      <div className="bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-4 z-10 relative shrink-0">
+      <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-4 z-30 sm:relative sm:z-10">
         <form onSubmit={handleSendMessage} className="max-w-5xl mx-auto">
           {replyingTo && (
             <div className="mb-3 flex items-start gap-3 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-xl p-3">
