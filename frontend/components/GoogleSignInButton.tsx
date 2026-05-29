@@ -53,17 +53,18 @@ export default function GoogleSignInButton({ className = '' }: GoogleSignInButto
       disabled={isLoading}
       className={`
         w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl
-        bg-[var(--bg-elevated)] text-[var(--text-primary)]
+        bg-[var(--surface-1)] text-[var(--text-primary)]
         border border-[var(--border-primary)]
-        hover:bg-[var(--bg-tertiary)] hover:border-[var(--accent-primary)]
+        hover:bg-[var(--surface-2)] hover:border-[var(--border-accent)]
         transition-all duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
-        font-medium text-sm
+        font-medium text-sm tracking-[-0.01em]
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)]
         ${className}
       `}
     >
       {isLoading ? (
-        <span className="w-4 h-4 border-2 border-[var(--text-secondary)]/30 border-t-[var(--text-secondary)] rounded-full animate-spin" />
+        <span className="w-4 h-4 border-2 border-[var(--text-tertiary)] border-t-[var(--text-primary)] rounded-full animate-spin" />
       ) : (
         <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" aria-hidden="true">
           <path

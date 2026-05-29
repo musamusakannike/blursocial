@@ -73,36 +73,38 @@ export default function RootLayout({
   return (
   <html lang="en">
       <body className="relative min-h-screen" suppressHydrationWarning>
-        {/* Dots go first (Background Layer) */}
+        {/* Ambient particles */}
         <FloatingDots />
 
-        {/* Content goes second (Foreground Layer) */}
+        {/* Content */}
         <div className="relative z-10">
           {children}
         </div>
+
         <Toaster
           position="top-center"
           toastOptions={{
             duration: 3000,
             style: {
-              background: 'var(--bg-elevated)',
+              background: 'var(--surface-1)',
               color: 'var(--text-primary)',
               border: '1px solid var(--border-primary)',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: '16px',
               padding: '12px 16px',
               fontSize: '14px',
-              fontFamily: 'Outfit, sans-serif',
+              fontFamily: 'Outfit, system-ui, sans-serif',
+              boxShadow: 'var(--shadow-lg)',
             },
             success: {
               iconTheme: {
                 primary: 'var(--success)',
-                secondary: 'var(--bg-elevated)',
+                secondary: 'var(--surface-1)',
               },
             },
             error: {
               iconTheme: {
                 primary: 'var(--error)',
-                secondary: 'var(--bg-elevated)',
+                secondary: 'var(--surface-1)',
               },
             },
           }}

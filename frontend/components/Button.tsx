@@ -4,7 +4,7 @@ import { ButtonHTMLAttributes, ReactNode, MouseEvent } from 'react';
 import { Haptics } from '@/lib/haptics';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
   children: ReactNode;
   isLoading?: boolean;
@@ -24,43 +24,51 @@ export default function Button({
     Haptics.light();
     if (onClick) onClick(e);
   };
-  const baseStyles = `
-    relative overflow-hidden font-medium rounded-xl
-    transition-all duration-200 ease-out
+
+  const base = `
+    relative overflow-hidden font-medium
+    transition-all duration-200
     disabled:opacity-50 disabled:cursor-not-allowed
-    active:scale-[0.98]
+    active:scale-[0.97]
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)]
   `;
 
-  const variants = {
+  const variants: Record<string, string> = {
     primary: `
       bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)]
-      text-white shadow-[var(--shadow-md)]
+      text-white rounded-full
+      shadow-[var(--shadow-md)]
       hover:shadow-[var(--shadow-glow)] hover:scale-[1.02]
-      before:absolute before:inset-0 before:bg-white before:opacity-0
+      before:absolute before:inset-0 before:rounded-full before:bg-white before:opacity-0
       before:transition-opacity before:duration-200
-      hover:before:opacity-10
+      hover:before:opacity-[0.08]
     `,
     secondary: `
-      bg-[var(--bg-elevated)] text-[var(--text-primary)]
-      border border-[var(--border-primary)]
-      hover:bg-[var(--bg-tertiary)] hover:border-[var(--accent-primary)]
+      bg-[var(--surface-1)] text-[var(--text-primary)]
+      border border-[var(--border-primary)] rounded-full
+      hover:bg-[var(--surface-2)] hover:border-[var(--border-accent)]
       hover:shadow-[var(--shadow-sm)]
     `,
     ghost: `
-      bg-transparent text-[var(--text-secondary)]
-      hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]
+      bg-transparent text-[var(--text-secondary)] rounded-full
+      hover:bg-[var(--surface-1)] hover:text-[var(--text-primary)]
+    `,
+    destructive: `
+      bg-[var(--error)] text-white rounded-full
+      shadow-[var(--shadow-sm)]
+      hover:opacity-90 hover:shadow-md
     `,
   };
 
-  const sizes = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
+  const sizes: Record<string, string> = {
+    sm: 'px-5 py-2 text-sm',
+    md: 'px-6 py-2.5 text-sm',
+    lg: 'px-8 py-3.5 text-base',
   };
 
   return (
     <button
-      className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || isLoading}
       onClick={handleClick}
       {...props}
@@ -68,7 +76,7 @@ export default function Button({
       {isLoading ? (
         <span className="flex items-center justify-center gap-2">
           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          Loading...
+          Loading…
         </span>
       ) : (
         children

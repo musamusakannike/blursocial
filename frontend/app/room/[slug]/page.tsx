@@ -15,6 +15,7 @@ import {
   FiUsers,
   FiAlertCircle,
 } from 'react-icons/fi';
+import Logo from '@/components/Logo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { nanoid } from 'nanoid';
@@ -148,13 +149,14 @@ function MessageBubble({
   };
 
   return (
-    <div className={`animate-fade-in ${message.isOptimistic ? 'opacity-60' : ''}`}>
+    <div className={`animate-message ${message.isOptimistic ? 'opacity-50' : ''}`}>
       <div
-        className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-4 max-w-2xl shadow-sm hover:shadow-[var(--shadow-md)] transition-shadow group"
+        className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-4 max-w-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow duration-300 group"
         {...longPress}
       >
+        {/* Reply quote */}
         {message.replyTo && (
-          <div className="mb-3 pl-3 border-l-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 rounded-r-lg p-2">
+          <div className="mb-3 pl-3 border-l-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 rounded-r-xl p-2.5">
             <div className="flex items-center gap-1.5 mb-1">
               <FiCornerUpLeft className="w-3 h-3 text-[var(--accent-primary)]" />
               <span className="text-xs font-medium text-[var(--accent-primary)]">Replying to</span>
@@ -163,13 +165,13 @@ function MessageBubble({
           </div>
         )}
 
-        {/* Content row — timestamp hidden until hover */}
+        {/* Content + timestamp */}
         <div className="flex items-start justify-between gap-4">
-          <p className="text-[var(--text-primary)] break-words whitespace-pre-wrap flex-1">
+          <p className="text-[var(--text-primary)] break-words whitespace-pre-wrap flex-1 leading-relaxed">
             {message.content}
           </p>
           <span
-            className={`text-[10px] uppercase tracking-[0.2em] text-[var(--text-tertiary)] whitespace-nowrap transition-opacity duration-200 ${
+            className={`text-[10px] uppercase tracking-[0.15em] text-[var(--text-tertiary)] whitespace-nowrap transition-opacity duration-200 mt-1 ${
               showTime ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             }`}
             aria-label={message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -178,18 +180,18 @@ function MessageBubble({
           </span>
         </div>
 
-        {/* Reactions + action buttons */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* Reactions + actions */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {message.reactions.map((reaction) => {
             const active = isReactionActive(message.id, reaction.emoji, reaction, localReactions);
             return (
               <button
                 key={reaction.emoji}
                 onClick={() => onReactionToggle(message.id, reaction.emoji)}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)] ${
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
                   active
-                    ? 'bg-[var(--accent-primary)]/15 border-[var(--accent-primary)] text-[var(--accent-primary)] shadow-[0_0_0_1px_var(--accent-primary)]'
-                    : 'border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5'
+                    ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--accent-primary)]'
+                    : 'border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5'
                 }`}
                 aria-pressed={active}
               >
@@ -199,25 +201,25 @@ function MessageBubble({
             );
           })}
 
-          {/* Reaction picker */}
+          {/* Add reaction */}
           <div className="relative">
             <button
               type="button"
               onClick={() => onSetReactionPicker(activeReactionPicker === message.id ? null : message.id)}
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)]"
+              className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
               aria-label="Add reaction"
             >
-              {activeReactionPicker === message.id ? <FiSmile className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
+              {activeReactionPicker === message.id ? <FiSmile className="w-3.5 h-3.5" /> : <FiPlus className="w-3.5 h-3.5" />}
             </button>
 
             {activeReactionPicker === message.id && (
-              <div className="absolute bottom-full left-0 mb-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-xl shadow-[var(--shadow-lg)] p-2 flex gap-1 animate-scale-in z-10">
+              <div className="absolute bottom-full left-0 mb-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-2xl shadow-[var(--shadow-lg)] p-1.5 flex gap-0.5 animate-scale-in z-10">
                 {QUICK_REACTIONS.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => { onSetReactionPicker(null); onReactionToggle(message.id, emoji); }}
-                    className="w-10 h-10 flex items-center justify-center text-xl rounded-lg hover:bg-[var(--accent-primary)]/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                    className="w-9 h-9 flex items-center justify-center text-lg rounded-xl hover:bg-[var(--accent-primary)]/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                     aria-label={`React with ${emoji}`}
                   >
                     {emoji}
@@ -231,20 +233,20 @@ function MessageBubble({
           <button
             type="button"
             onClick={() => onReply(message)}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)]"
+            className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
             aria-label="Reply to message"
           >
-            <FiCornerUpLeft className="w-4 h-4" />
+            <FiCornerUpLeft className="w-3.5 h-3.5" />
           </button>
 
-          {/* Copy message */}
+          {/* Copy */}
           <button
             type="button"
             onClick={copyMessage}
-            className="flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-secondary)]"
+            className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
             aria-label="Copy message"
           >
-            <FiCopy className="w-4 h-4" />
+            <FiCopy className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -643,15 +645,18 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   // ── Room not found ──────────────────────────────────────────────────────────
   if (roomNotFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-glow)] via-transparent to-transparent opacity-30" />
+      <div className="min-h-screen flex items-center justify-center p-5">
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 30%, rgba(248,113,113,0.08), transparent)' }}
+        />
         <div className="relative w-full max-w-md text-center animate-scale-in">
           <div className="w-20 h-20 rounded-2xl bg-[var(--error)]/10 flex items-center justify-center mx-auto mb-6">
             <FiAlertCircle className="w-10 h-10 text-[var(--error)]" />
           </div>
-          <h1 className="text-3xl font-bold mb-3">Room Not Found</h1>
-          <p className="text-[var(--text-secondary)] mb-8">
-            This room doesn't exist or has already expired. Check the link and try again.
+          <h1 className="display-md text-3xl mb-3">Room Not Found</h1>
+          <p className="text-[var(--text-secondary)] mb-8 leading-relaxed">
+            This room doesn&apos;t exist or has already expired. Check the link and try again.
           </p>
           <Link href="/">
             <Button variant="primary" size="lg">Back to Home</Button>
@@ -664,17 +669,20 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   // ── Password gate ───────────────────────────────────────────────────────────
   if (!isVerified) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-glow)] via-transparent to-transparent opacity-30" />
+      <div className="min-h-screen flex items-center justify-center p-5">
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 30%, var(--accent-glow), transparent)' }}
+        />
         <div className="relative w-full max-w-md animate-scale-in">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center mx-auto mb-4">
-              <FiMessageCircle className="w-8 h-8 text-white" />
+            <div className="flex justify-center mb-5">
+              <Logo size="lg" href={null as any} />
             </div>
-            <h1 className="text-3xl font-bold mb-2">Enter Room</h1>
+            <h1 className="display-md text-3xl mb-2">Enter Room</h1>
             <p className="text-[var(--text-secondary)]">This room is password protected</p>
           </div>
-          <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8 shadow-[var(--shadow-lg)]">
+          <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-8 shadow-[var(--shadow-lg)]">
             <form onSubmit={handleVerifyPassword} className="space-y-5">
               <Input
                 label="Room Password"
@@ -699,18 +707,19 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   // ── Chat UI ─────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 flex flex-col bg-[var(--bg-primary)]">
-      <header className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)] px-4 sm:px-6 py-4 shrink-0 z-20">
+      {/* Header */}
+      <header className="bg-[var(--surface-1)] border-b border-[var(--border-primary)] px-5 sm:px-6 py-3.5 shrink-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
-              <FiMessageCircle className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-[var(--shadow-sm)]">
+              <FiMessageCircle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold">{roomName}</h1>
+              <h1 className="text-base font-semibold tracking-[-0.02em]">{roomName}</h1>
               <p className="text-xs text-[var(--text-tertiary)]">Anonymous Chat</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {onlineCount !== null && (
               <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                 <FiUsers className="w-3.5 h-3.5" />
@@ -719,21 +728,22 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
             )}
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse" />
-              <span className="text-xs text-[var(--text-secondary)] hidden sm:inline">Connected</span>
+              <span className="text-xs text-[var(--text-tertiary)] hidden sm:inline">Connected</span>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Messages */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-24 sm:pb-6 relative"
       >
-        <div className="max-w-5xl mx-auto space-y-4">
+        <div className="max-w-5xl mx-auto space-y-3">
           {messages.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-glow)] flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--accent-glow)] flex items-center justify-center mx-auto mb-5">
                 <FiMessageCircle className="w-8 h-8 text-[var(--accent-primary)]" />
               </div>
               <p className="text-[var(--text-secondary)]">No messages yet. Start the conversation!</p>
@@ -743,13 +753,11 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
               <div key={message.id}>
                 {lastReadMessageIndex !== null && index === lastReadMessageIndex + 1 && (
                   <div className="relative my-6 flex items-center gap-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)] to-transparent" />
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30">
-                      <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
-                      <span className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-primary)]">Unread Messages</span>
-                      <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)]/50 to-transparent" />
+                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent-primary)]/8 border border-[var(--accent-primary)]/20">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--accent-primary)]">New Messages</span>
                     </div>
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)] to-transparent" />
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--accent-primary)]/50 to-transparent" />
                   </div>
                 )}
                 <MessageBubble
@@ -766,16 +774,17 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Scroll to bottom */}
         {showScrollButton && (
           <div className="sticky bottom-4 w-full flex justify-end pr-4 sm:pr-6 pointer-events-none z-20">
             <button
               onClick={scrollToBottom}
-              className="pointer-events-auto bg-[var(--accent-primary)] text-white border border-[var(--accent-primary)] rounded-full p-3 shadow-lg hover:bg-[var(--accent-primary)]/90 hover:shadow-xl transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50 focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)] flex items-center justify-center gap-2 relative"
+              className="pointer-events-auto bg-[var(--accent-primary)] text-white rounded-full p-3 shadow-[var(--shadow-glow)] hover:shadow-[var(--shadow-glow-strong)] hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] flex items-center justify-center gap-2 relative"
               aria-label={unreadCount > 0 ? `${unreadCount} unread messages, scroll to bottom` : 'Scroll to bottom'}
             >
               <FiArrowDown className="w-5 h-5" />
               {unreadCount > 0 && (
-                <div className="flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 rounded-full bg-white text-[var(--accent-primary)] text-xs font-bold">
+                <div className="flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-white text-[var(--accent-primary)] text-[10px] font-bold">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </div>
               )}
@@ -784,21 +793,22 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-4 z-30 sm:relative sm:z-10">
+      {/* Input area */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[var(--surface-1)] border-t border-[var(--border-primary)] px-4 sm:px-6 py-3.5 z-30 sm:relative sm:z-10">
         <form onSubmit={handleSendMessage} className="max-w-5xl mx-auto">
           {replyingTo && (
-            <div className="mb-3 flex items-start gap-3 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/20 rounded-xl p-3">
+            <div className="mb-3 flex items-start gap-3 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/15 rounded-xl p-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <FiCornerUpLeft className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                  <span className="text-xs font-semibold text-[var(--accent-primary)]">Replying to message</span>
+                  <FiCornerUpLeft className="w-3 h-3 text-[var(--accent-primary)]" />
+                  <span className="text-xs font-medium text-[var(--accent-primary)]">Replying to message</span>
                 </div>
                 <p className="text-sm text-[var(--text-secondary)] line-clamp-2">{replyingTo.content}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 aria-label="Cancel reply"
               >
                 <FiX className="w-4 h-4" />
@@ -820,9 +830,9 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
               variant="primary"
               size="md"
               disabled={!newMessage.trim()}
-              className="flex items-center gap-2 px-6"
+              className="flex items-center gap-2 px-5"
             >
-              <FiSend className="w-5 h-5" />
+              <FiSend className="w-4 h-4" />
               <span className="hidden sm:inline">Send</span>
             </Button>
           </div>

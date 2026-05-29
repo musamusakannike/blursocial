@@ -1,52 +1,86 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLUR DESIGN SYSTEM — Dark Canvas with Pink Accent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg-primary: #0B0D0F;
-  --bg-secondary: #12161A;
-  --bg-tertiary: #1A2027;
-  --bg-elevated: #1F2933;
-  
-  --text-primary: #F0F4F8;
-  --text-secondary: #9FB3C8;
-  --text-tertiary: #627D98;
-  
-  --accent-primary: #FF6B9D;
-  --accent-secondary: #C44569;
-  --accent-tertiary: #FF007F;
-  --accent-glow: rgba(255, 107, 157, 0.15);
-  
-  --border-primary: rgba(255, 255, 255, 0.08);
+  /* ── Surface System ─────────────────────────────────────────────────────── */
+  --bg-primary:    #0A0B0D;
+  --bg-secondary:  #111316;
+  --bg-tertiary:   #191C21;
+  --bg-elevated:   #1F2329;
+  --surface-1:     #111316;
+  --surface-2:     #191C21;
+
+  /* ── Text System ────────────────────────────────────────────────────────── */
+  --text-primary:   #F0F2F5;
+  --text-secondary: #9CA3AF;
+  --text-tertiary:  #5C6370;
+
+  /* ── Accent System ──────────────────────────────────────────────────────── */
+  --accent-primary:    #FF6B9D;
+  --accent-secondary:  #C44569;
+  --accent-tertiary:   #FF3D7F;
+  --accent-glow:       rgba(255, 107, 157, 0.12);
+  --accent-glow-strong: rgba(255, 107, 157, 0.25);
+
+  /* ── Gradient Spotlight Colors ──────────────────────────────────────────── */
+  --gradient-coral:   #FF5577;
+  --gradient-magenta: #D44DF0;
+  --gradient-violet:  #6A4CF5;
+  --gradient-warm:    #FF7A3D;
+
+  /* ── Border System ──────────────────────────────────────────────────────── */
+  --border-primary:   rgba(255, 255, 255, 0.07);
   --border-secondary: rgba(255, 255, 255, 0.04);
-  
-  --success: #4ECDC4;
-  --error: #FF6B6B;
-  --warning: #FFE66D;
-  
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 24px var(--accent-glow);
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --border-accent:    rgba(255, 107, 157, 0.3);
+
+  /* ── Semantic ───────────────────────────────────────────────────────────── */
+  --success:  #34D399;
+  --error:    #F87171;
+  --warning:  #FBBF24;
+
+  /* ── Shadows ────────────────────────────────────────────────────────────── */
+  --shadow-sm:   0 1px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md:   0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg:   0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 30px rgba(255, 107, 157, 0.2), 0 0 60px rgba(255, 107, 157, 0.08);
+  --shadow-glow-strong: 0 0 40px rgba(255, 107, 157, 0.3), 0 0 80px rgba(255, 107, 157, 0.12);
+
+  /* ── Radius ─────────────────────────────────────────────────────────────── */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  24px;
+  --radius-pill: 100px;
+  --radius-full: 9999px;
+
+  /* ── Transitions ────────────────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-fast: 150ms var(--ease-out-expo);
+  --transition-base: 250ms var(--ease-out-expo);
+  --transition-slow: 400ms var(--ease-out-quint);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
   font-weight: 400;
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 ::selection {
@@ -54,28 +88,36 @@ body {
   color: white;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-elevated);
-  border-radius: 4px;
+  background: var(--border-primary);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.15);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYFRAME ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -86,7 +128,7 @@ body {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -97,7 +139,7 @@ body {
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -106,75 +148,199 @@ body {
 }
 
 @keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pulseGlow {
   0%, 100% {
-    opacity: 1;
+    box-shadow: 0 0 20px rgba(255, 107, 157, 0.15);
   }
   50% {
-    opacity: 0.5;
+    box-shadow: 0 0 40px rgba(255, 107, 157, 0.3), 0 0 80px rgba(255, 107, 157, 0.1);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% {
+    transform: translateY(-110vh);
+    opacity: 0;
   }
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
 
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.05); opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATION UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .animate-fade-in {
-  animation: fadeIn var(--transition-base) ease-out;
+  animation: fadeIn 300ms var(--ease-out-expo) both;
 }
 
 .animate-slide-up {
-  animation: slideUp var(--transition-slow) ease-out;
+  animation: slideUp 450ms var(--ease-out-quint) both;
 }
 
 .animate-scale-in {
-  animation: scaleIn var(--transition-base) ease-out;
+  animation: scaleIn 300ms var(--ease-out-expo) both;
 }
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
 
 .animate-pulse-fast {
-  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-@keyframes floatUp {
-  0% {
-    /* Start below the screen */
-    transform: translateY(0); 
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    /* Move up by 110% of the screen height */
-    transform: translateY(-110vh); 
-    opacity: 0;
-  }
+
+.animate-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
 }
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.animate-message {
+  animation: messageSlideIn 280ms var(--ease-out-expo) both;
+}
+
+.animate-spin {
+  animation: spin 0.6s linear infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 0%,
+    var(--bg-tertiary) 50%,
+    var(--bg-elevated) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PARTICLE SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 .particle {
   position: absolute;
-  /* This is the starting line: the very bottom of the container */
-  top: 100%; 
+  top: 100%;
   border-radius: 50%;
   pointer-events: none;
   animation: floatUp linear infinite;
   will-change: transform;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY DISPLAY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.display-hero {
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.display-xl {
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+}
+
+.display-lg {
+  font-weight: 600;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+}
+
+.display-md {
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GRADIENT TEXT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent-primary), var(--gradient-coral), var(--accent-primary));
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-animated {
+  background: linear-gradient(135deg, var(--accent-primary), var(--gradient-coral), var(--gradient-magenta), var(--accent-primary));
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FOCUS STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -2,15 +2,16 @@
 import { useEffect, useState } from "react";
 
 export default function FloatingDots() {
-  const [dots, setDots] = useState<{ id: number; left: string; size: string; duration: string; delay: string }[]>([]);
+  const [dots, setDots] = useState<{ id: number; left: string; size: string; duration: string; delay: string; opacity: number }[]>([]);
 
   useEffect(() => {
-    const newDots = Array.from({ length: 20 }).map((_, i) => ({
+    const newDots = Array.from({ length: 14 }).map((_, i) => ({
       id: i,
       left: `${Math.random() * 100}%`,
-      size: `${Math.random() * 5 + 3}px`,
-      duration: `${Math.random() * 10 + 10}s`, // Slow move looks better
-      delay: `${Math.random() * -20}s`, // Negative delay starts them mid-air
+      size: `${Math.random() * 3 + 2}px`,
+      duration: `${Math.random() * 12 + 14}s`,
+      delay: `${Math.random() * -20}s`,
+      opacity: Math.random() * 0.25 + 0.08,
     }));
     setDots(newDots);
   }, []);
@@ -27,8 +28,9 @@ export default function FloatingDots() {
             height: dot.size,
             animationDuration: dot.duration,
             animationDelay: dot.delay,
-            backgroundColor: 'var(--accent-tertiary, #db2777)',
-            boxShadow: '0 0 10px var(--accent-tertiary, #db2777)',
+            backgroundColor: `var(--accent-primary)`,
+            opacity: dot.opacity,
+            filter: `blur(1px)`,
           }}
         />
       ))}

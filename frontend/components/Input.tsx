@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2 tracking-[-0.01em]">
             {label}
           </label>
         )}
@@ -27,14 +27,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={resolvedType}
             className={`
               w-full px-4 py-3 rounded-xl
-              bg-[var(--bg-secondary)] text-[var(--text-primary)]
+              bg-[var(--surface-1)] text-[var(--text-primary)]
               border border-[var(--border-primary)]
               placeholder:text-[var(--text-tertiary)]
               focus:outline-none focus:border-[var(--accent-primary)]
-              focus:shadow-[0_0_0_3px_var(--accent-glow)]
+              focus:shadow-[0_0_0_3px_var(--accent-glow),0_0_20px_var(--accent-glow)]
               transition-all duration-200
               ${isPassword ? 'pr-12' : ''}
-              ${error ? 'border-[var(--error)]' : ''}
+              ${error ? 'border-[var(--error)] shadow-[0_0_0_3px_rgba(248,113,113,0.1)]' : ''}
               ${className}
             `}
             {...props}
@@ -44,13 +44,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[var(--surface-2)]"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
-                <FiEyeOff className="w-5 h-5" />
+                <FiEyeOff className="w-4 h-4" />
               ) : (
-                <FiEye className="w-5 h-5" />
+                <FiEye className="w-4 h-4" />
               )}
             </button>
           )}

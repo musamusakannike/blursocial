@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
-  FiMessageCircle,
   FiPlus,
   FiCopy,
   FiLogOut,
   FiExternalLink,
   FiTrash2,
   FiAlertTriangle,
+  FiMessageCircle,
 } from 'react-icons/fi';
+import Logo from '@/components/Logo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Card from '@/components/Card';
@@ -63,16 +64,16 @@ function useCountdown(expiresAt?: Date | null) {
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-6 animate-pulse">
+    <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-6">
       <div className="flex justify-between items-start mb-3">
-        <div className="h-5 w-40 bg-[var(--bg-elevated)] rounded-lg" />
-        <div className="h-5 w-16 bg-[var(--bg-elevated)] rounded-md" />
+        <div className="h-5 w-40 animate-shimmer rounded-lg" />
+        <div className="h-5 w-16 animate-shimmer rounded-full" />
       </div>
-      <div className="h-3 w-28 bg-[var(--bg-elevated)] rounded mb-2" />
-      <div className="h-3 w-36 bg-[var(--bg-elevated)] rounded mb-6" />
+      <div className="h-3 w-28 animate-shimmer rounded mb-2" />
+      <div className="h-3 w-36 animate-shimmer rounded mb-6" />
       <div className="flex gap-2">
-        <div className="flex-1 h-9 bg-[var(--bg-elevated)] rounded-xl" />
-        <div className="flex-1 h-9 bg-[var(--bg-elevated)] rounded-xl" />
+        <div className="flex-1 h-9 animate-shimmer rounded-full" />
+        <div className="flex-1 h-9 animate-shimmer rounded-full" />
       </div>
     </div>
   );
@@ -94,13 +95,13 @@ function RoomCard({
     <Card hover className="p-6 animate-fade-in flex flex-col justify-between">
       <div>
         <div className="flex justify-between items-start mb-2 gap-2">
-          <h3 className="text-lg font-semibold truncate flex-1">{room.name}</h3>
+          <h3 className="text-lg font-semibold truncate flex-1 tracking-[-0.02em]">{room.name}</h3>
           {!room.expiresAt ? (
-            <span className="shrink-0 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-green-500/20">
+            <span className="shrink-0 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/20 font-medium">
               Permanent
             </span>
           ) : (
-            <span className="shrink-0 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
+            <span className="shrink-0 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 font-medium">
               Temporary
             </span>
           )}
@@ -112,7 +113,7 @@ function RoomCard({
             : 'Created recently'}
         </p>
 
-        <p className="text-xs mb-4">
+        <p className="text-xs mb-5">
           {room.expiresAt ? (
             <span className="text-[var(--error)]">{countdown || 'Calculating…'}</span>
           ) : (
@@ -128,7 +129,7 @@ function RoomCard({
           onClick={() => onCopy(room.slug)}
           className="flex-1 flex items-center justify-center gap-2"
         >
-          <FiCopy className="w-4 h-4" />
+          <FiCopy className="w-3.5 h-3.5" />
           Copy Link
         </Button>
         <Link href={`/room/${room.slug}`} className="flex-1">
@@ -137,16 +138,16 @@ function RoomCard({
             size="sm"
             className="w-full flex items-center justify-center gap-2"
           >
-            <FiExternalLink className="w-4 h-4" />
+            <FiExternalLink className="w-3.5 h-3.5" />
             Open
           </Button>
         </Link>
         <button
           onClick={() => onDelete(room)}
-          className="flex items-center justify-center w-9 h-9 rounded-xl border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--error)] hover:text-[var(--error)] hover:bg-[var(--error)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)]"
+          className="flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--error)] hover:text-[var(--error)] hover:bg-[var(--error)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)]"
           aria-label={`Delete room ${room.name}`}
         >
-          <FiTrash2 className="w-4 h-4" />
+          <FiTrash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </Card>
@@ -167,20 +168,20 @@ function DeleteModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5 z-50 animate-fade-in"
       onClick={onCancel}
     >
       <div
-        className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8 max-w-sm w-full shadow-[var(--shadow-lg)] animate-scale-in"
+        className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-8 max-w-sm w-full shadow-[var(--shadow-lg)] animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[var(--error)]/10 flex items-center justify-center shrink-0">
             <FiAlertTriangle className="w-5 h-5 text-[var(--error)]" />
           </div>
-          <h2 className="text-xl font-bold">Delete Room</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.02em]">Delete Room</h2>
         </div>
-        <p className="text-[var(--text-secondary)] mb-6">
+        <p className="text-[var(--text-secondary)] mb-6 leading-relaxed">
           Are you sure you want to delete <span className="font-semibold text-[var(--text-primary)]">{room.name}</span>? This will permanently remove the room and all its messages.
         </p>
         <div className="flex gap-3">
@@ -194,23 +195,18 @@ function DeleteModal({
           >
             Cancel
           </Button>
-          <button
+          <Button
+            type="button"
+            variant="destructive"
+            size="md"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex-1 px-6 py-3 rounded-xl bg-[var(--error)] text-white font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            isLoading={isDeleting}
+            className="flex-1 flex items-center justify-center gap-2"
           >
-            {isDeleting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Deleting…
-              </>
-            ) : (
-              <>
-                <FiTrash2 className="w-4 h-4" />
-                Delete
-              </>
-            )}
-          </button>
+            {!isDeleting && <FiTrash2 className="w-4 h-4" />}
+            Delete
+          </Button>
         </div>
       </div>
     </div>
@@ -333,26 +329,26 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <nav className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="bg-[var(--surface-1)] border-b border-[var(--border-primary)]">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] animate-pulse" />
-                <div className="h-5 w-12 bg-[var(--bg-elevated)] rounded animate-pulse" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl animate-shimmer" />
+                <div className="h-5 w-12 rounded animate-shimmer" />
               </div>
-              <div className="h-8 w-20 bg-[var(--bg-elevated)] rounded-xl animate-pulse" />
+              <div className="h-8 w-20 rounded-full animate-shimmer" />
             </div>
           </div>
         </nav>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <div className="h-8 w-48 bg-[var(--bg-elevated)] rounded-lg animate-pulse mb-2" />
-              <div className="h-4 w-64 bg-[var(--bg-elevated)] rounded animate-pulse" />
+              <div className="h-8 w-48 rounded-lg animate-shimmer mb-2" />
+              <div className="h-4 w-64 rounded animate-shimmer" />
             </div>
-            <div className="h-10 w-32 bg-[var(--bg-elevated)] rounded-xl animate-pulse" />
+            <div className="h-10 w-32 rounded-full animate-shimmer" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
           </div>
         </main>
@@ -362,17 +358,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="bg-[var(--bg-secondary)] border-b border-[var(--border-primary)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Navigation ──────────────────────────────────────────────────────── */}
+      <nav className="bg-[var(--surface-1)] border-b border-[var(--border-primary)]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
-                <FiMessageCircle className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-semibold">Blur</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-[var(--text-secondary)]">{user?.username}</span>
+            <Logo size="sm" />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[var(--text-secondary)] hidden sm:inline">{user?.username}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -380,17 +372,18 @@ export default function DashboardPage() {
                 className="flex items-center gap-2"
               >
                 <FiLogOut className="w-4 h-4" />
-                Logout
+                <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ── Content ─────────────────────────────────────────────────────────── */}
+      <main className="max-w-6xl mx-auto px-5 sm:px-8 py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Your Chat Rooms</h1>
+            <h1 className="display-md text-2xl sm:text-3xl mb-1">Your Chat Rooms</h1>
             <p className="text-[var(--text-secondary)]">
               Create and manage your anonymous chat rooms
             </p>
@@ -401,18 +394,18 @@ export default function DashboardPage() {
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 w-full sm:w-auto"
           >
-            <FiPlus className="w-5 h-5" />
+            <FiPlus className="w-4 h-4" />
             Create Room
           </Button>
         </div>
 
         {rooms.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-14 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-glow)] flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--accent-glow)] flex items-center justify-center mx-auto mb-5">
                 <FiMessageCircle className="w-8 h-8 text-[var(--accent-primary)]" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No rooms yet</h3>
+              <h3 className="text-xl font-semibold mb-2 tracking-[-0.02em]">No rooms yet</h3>
               <p className="text-[var(--text-secondary)] mb-6">
                 Create your first chat room to get started
               </p>
@@ -421,13 +414,13 @@ export default function DashboardPage() {
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 mx-auto"
               >
-                <FiPlus className="w-5 h-5" />
+                <FiPlus className="w-4 h-4" />
                 Create Your First Room
               </Button>
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {rooms.map((room) => (
               <RoomCard
                 key={room.id}
@@ -440,17 +433,17 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Create Room Modal — closes on backdrop click */}
+      {/* ── Create Room Modal ───────────────────────────────────────────────── */}
       {showCreateModal && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5 z-50 animate-fade-in"
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8 max-w-md w-full shadow-[var(--shadow-lg)] animate-scale-in"
+            className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-8 max-w-md w-full shadow-[var(--shadow-lg)] animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold mb-6">Create New Room</h2>
+            <h2 className="text-2xl font-semibold mb-6 tracking-[-0.02em]">Create New Room</h2>
             <form onSubmit={handleCreateRoom} className="space-y-5">
               <Input
                 label="Room Name"
@@ -497,7 +490,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* ── Delete Confirmation Modal ───────────────────────────────────────── */}
       {roomToDelete && (
         <DeleteModal
           room={roomToDelete}

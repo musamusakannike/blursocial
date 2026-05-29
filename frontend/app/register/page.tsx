@@ -4,7 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiMessageCircle } from 'react-icons/fi';
+import Logo from '@/components/Logo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
@@ -50,29 +50,35 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-glow)] via-transparent to-transparent opacity-30" />
-      
+    <div className="min-h-screen flex items-center justify-center p-5">
+      {/* Background glow */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 50% 50% at 30% 30%, var(--accent-glow), transparent)',
+        }}
+      />
+
       <div className="relative w-full max-w-md animate-scale-in">
+        {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
-              <FiMessageCircle className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold">Blur</span>
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">Create Account</h1>
+          <div className="flex justify-center mb-5">
+            <Logo size="lg" />
+          </div>
+          <h1 className="display-md text-3xl mb-2">Create Account</h1>
           <p className="text-[var(--text-secondary)]">
             Start creating anonymous chat rooms
           </p>
         </div>
 
-        <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8 shadow-[var(--shadow-lg)]">
+        {/* Card */}
+        <div className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-8 shadow-[var(--shadow-lg)]">
           <GoogleSignInButton />
 
-          <div className="flex items-center gap-3 my-5">
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-[var(--border-primary)]" />
-            <span className="text-xs text-[var(--text-secondary)]">or create an account</span>
+            <span className="text-xs text-[var(--text-tertiary)] uppercase tracking-widest font-medium">or</span>
             <div className="flex-1 h-px bg-[var(--border-primary)]" />
           </div>
 
