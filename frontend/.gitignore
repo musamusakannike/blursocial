@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+blur-36b53-firebase-adminsdk-fbsvc-b29370b59c.json

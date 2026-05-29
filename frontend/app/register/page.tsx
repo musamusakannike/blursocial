@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { FiMessageCircle } from 'react-icons/fi';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -67,6 +68,14 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-[var(--bg-secondary)] rounded-2xl border border-[var(--border-primary)] p-8 shadow-[var(--shadow-lg)]">
+          <GoogleSignInButton />
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-[var(--border-primary)]" />
+            <span className="text-xs text-[var(--text-secondary)]">or create an account</span>
+            <div className="flex-1 h-px bg-[var(--border-primary)]" />
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               label="Username"
