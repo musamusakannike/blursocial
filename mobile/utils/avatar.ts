@@ -53,8 +53,8 @@ export function getSpectralProfile(hash: string | null | undefined): SpectralPro
   const intVal = parseInt(hexPart, 16) || 0;
 
   const adj = ADJECTIVES[intVal % ADJECTIVES.length];
-  const noun = NOUNS[(intVal >> 4) % NOUNS.length];
-  const gradient = GRADIENTS[(intVal >> 8) % GRADIENTS.length];
+  const noun = NOUNS[(intVal >>> 4) % NOUNS.length];
+  const gradient = GRADIENTS[(intVal >>> 8) % GRADIENTS.length];
 
   const alias = `${adj} ${noun}`;
   const initials = `${adj.slice(0, 1)}${noun.slice(0, 1)}`.toUpperCase();
