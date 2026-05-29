@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { io, Socket } from 'socket.io-client';
+import Ably from 'ably';
 import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users, ArrowDown, Copy, EyeOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import uuid from 'react-native-uuid';
@@ -77,7 +77,7 @@ export default function RoomScreen() {
   const [roomName, setRoomName] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [realtime, setRealtime] = useState<any>(null);
   const [clientId, setClientId] = useState<string>('');
   const [clientHash, setClientHash] = useState<string>('');
   const [activeReactionPicker, setActiveReactionPicker] = useState<string | null>(null);
@@ -131,16 +131,16 @@ export default function RoomScreen() {
 
   useEffect(() => {
     if (isVerified) {
-      connectSocket();
+      connectAbly();
       checkNotificationPreference();
     }
 
     return () => {
-      if (socket) {
-        socket.disconnect();
+      if (realtime) {
+        realtime.close();
       }
     };
-  }, [isVerified]);
+  }, [isVerified, realtime]);
 
   const initializeClientId = async () => {
     let id = await storage.getItem(STORAGE_KEYS.CLIENT_ID);
@@ -211,21 +211,38 @@ export default function RoomScreen() {
     }
   };
 
-  const connectSocket = () => {
-    const newSocket = io(SOCKET_URL, {
-      transports: ['websocket'],
+  const connectAbly = () => {
+    if (!clientId) return;
+
+    const newRealtime = new Ably.Realtime({
+      authUrl: `${API_URL}/api/ably-auth?clientId=${encodeURIComponent(clientId)}`,
     });
 
-    newSocket.on('connect', () => {
-      console.log('Socket connected');
-      newSocket.emit('join-room', slug);
+    const channel = newRealtime.channels.get(`room:${slug}`);
+
+    newRealtime.connection.on('connected', async () => {
+      console.log('Ably connected');
+      try {
+        await channel.presence.enter();
+        const members = await channel.presence.get();
+        setOnlineCount(members.length);
+      } catch (err) {
+        console.error('Failed to enter presence:', err);
+      }
     });
 
-    newSocket.on('room-user-count', (count: number) => {
-      setOnlineCount(count);
+    // Track online count via Presence
+    channel.presence.subscribe(() => {
+      channel.presence.get().then((members) => {
+        setOnlineCount(members.length);
+      }).catch((err) => {
+        console.error('Failed to get presence members:', err);
+      });
     });
 
-    newSocket.on('new-message', (message: Message) => {
+    // Subscribe to message broadcasts
+    channel.subscribe('new-message', (messageEvent) => {
+      const message = messageEvent.data as Message;
       setMessages((prev) => {
         const filtered = prev.filter((m) => m.tempId !== message.tempId);
         return [...filtered, message];
@@ -244,19 +261,21 @@ export default function RoomScreen() {
       }, 100);
     });
 
-    newSocket.on('message-reactions-updated', (data: { messageId: string; reactions: ReactionSummary[] }) => {
+    // Subscribe to reaction broadcasts
+    channel.subscribe('message-reactions-updated', (messageEvent) => {
+      const payload = messageEvent.data as { messageId: string; reactions: ReactionSummary[] };
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === data.messageId ? { ...msg, reactions: data.reactions } : msg
+          msg.id === payload.messageId ? { ...msg, reactions: payload.reactions } : msg
         )
       );
     });
 
-    newSocket.on('error', (error: any) => {
-      showToast(error.message || 'Socket error', 'error');
+    newRealtime.connection.on('failed', () => {
+      showToast('Real-time connection failed', 'error');
     });
 
-    setSocket(newSocket);
+    setRealtime(newRealtime);
   };
 
   const checkNotificationPreference = async () => {
@@ -301,8 +320,8 @@ export default function RoomScreen() {
     );
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !socket) return;
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
 
     const tempId = uuid.v4() as string;
     const activeHash = isGhostMode ? null : clientHash;
@@ -327,28 +346,40 @@ export default function RoomScreen() {
       messagesRef.current = next;
       return next;
     });
+    const messageContent = newMessage.trim();
     setNewMessage('');
     setReplyingTo(null);
 
-    socket.emit('send-message', {
-      roomSlug: slug,
-      content: optimisticMessage.content,
-      tempId,
-      senderHash: activeHash,
-      ...(replyingTo && {
-        replyTo: {
-          messageId: replyingTo.id,
-          preview: replyingTo.content.substring(0, 100),
-        },
-      }),
-    });
+    try {
+      const response = await fetch(`${API_URL}/api/rooms/${slug}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: messageContent,
+          tempId,
+          senderHash: activeHash,
+          ...(replyingTo && {
+            replyTo: {
+              messageId: replyingTo.id,
+              preview: replyingTo.content.substring(0, 100),
+            },
+          }),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+    } catch (err) {
+      showToast('Failed to send message', 'error');
+      // Revert optimistic insert
+      setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     scrollToBottom();
   };
 
-  const handleReaction = (messageId: string, emoji: string) => {
-    if (!socket || !clientId) return;
+  const handleReaction = async (messageId: string, emoji: string) => {
+    if (!clientId) return;
 
     const message = messages.find((m) => m.id === messageId);
     if (!message) return;
@@ -356,16 +387,46 @@ export default function RoomScreen() {
     const existingReaction = message.reactions.find((r) => r.emoji === emoji);
     const action = existingReaction?.reacted ? 'remove' : 'add';
 
-    socket.emit('react-message', {
-      roomSlug: slug,
-      messageId,
-      emoji,
-      clientId,
-      action,
-    });
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) return msg;
+        const updatedReactions = msg.reactions.map((r) => {
+          if (r.emoji !== emoji) return r;
+          const nextCount = action === 'add' ? r.count + 1 : Math.max(r.count - 1, 0);
+          return {
+            ...r,
+            count: nextCount,
+            reacted: action === 'add' ? true : nextCount > 0 ? r.reacted : false,
+          };
+        }).filter((r) => r.count > 0);
+
+        const found = msg.reactions.some((r) => r.emoji === emoji);
+        if (!found && action === 'add') {
+          updatedReactions.push({ emoji, count: 1, reacted: true });
+        }
+        return { ...msg, reactions: updatedReactions };
+      })
+    );
 
     setActiveReactionPicker(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const response = await fetch(`${API_URL}/api/rooms/${slug}/messages/${messageId}/reactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': clientId,
+        },
+        body: JSON.stringify({ emoji, action }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update reaction');
+    } catch (err) {
+      showToast('Failed to update reaction', 'error');
+      fetchMessages();
+    }
   };
 
   const handleCopyMessage = async (content: string) => {

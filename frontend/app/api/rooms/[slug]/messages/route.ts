@@ -4,6 +4,7 @@ import { getDb } from '@/lib/mongodb';
 import { Room } from '@/lib/models/Room';
 import { Message } from '@/lib/models/Room';
 import { hashClientId, summarizeReactions } from '@/lib/reactions';
+import Ably from 'ably';
 
 export async function GET(
   request: NextRequest,
@@ -93,17 +94,32 @@ export async function POST(
 
     const result = await db.collection<Message>('messages').insertOne(message);
 
+    const savedMessage = {
+      id: result.insertedId.toString(),
+      content: message.content,
+      timestamp: message.timestamp,
+      tempId,
+      reactions: [] as any[],
+      replyTo: message.replyTo,
+      senderHash: message.senderHash,
+    };
+
+    // Broadcast via Ably Rest
+    const apiKey = process.env.ABLY_API_KEY;
+    if (apiKey) {
+      try {
+        const ably = new Ably.Rest({ key: apiKey });
+        await ably.channels.get(`room:${slug}`).publish('new-message', savedMessage);
+      } catch (ablyError) {
+        console.error('Ably message broadcast failed:', ablyError);
+      }
+    } else {
+      console.warn('Warning: ABLY_API_KEY is not set. Real-time broadcast skipped.');
+    }
+
     return NextResponse.json(
       {
-        message: {
-          id: result.insertedId.toString(),
-          content: message.content,
-          timestamp: message.timestamp,
-          tempId,
-          reactions: [],
-          replyTo: message.replyTo,
-          senderHash: message.senderHash,
-        },
+        message: savedMessage,
       },
       { status: 201 }
     );

@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { Message, Room } from '@/lib/models/Room';
 import { hashClientId, normalizeEmoji, summarizeReactions } from '@/lib/reactions';
+import Ably from 'ably';
 
 export async function POST(
   request: NextRequest,
@@ -107,6 +108,22 @@ export async function POST(
       updatedMessage?.reactions ?? {},
       clientHash
     );
+
+    // Broadcast via Ably Rest
+    const apiKey = process.env.ABLY_API_KEY;
+    if (apiKey) {
+      try {
+        const ably = new Ably.Rest({ key: apiKey });
+        await ably.channels.get(`room:${slug}`).publish('message-reactions-updated', {
+          messageId,
+          reactions: reactionSummary,
+        });
+      } catch (ablyError) {
+        console.error('Ably reaction broadcast failed:', ablyError);
+      }
+    } else {
+      console.warn('Warning: ABLY_API_KEY is not set. Real-time broadcast skipped.');
+    }
 
     return NextResponse.json(
       {

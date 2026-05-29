@@ -8,7 +8,7 @@ import {
   FormEvent,
   useCallback,
 } from 'react';
-import { io, Socket } from 'socket.io-client';
+import Ably from 'ably';
 import toast from 'react-hot-toast';
 import {
   FiSend,
@@ -576,7 +576,7 @@ export default function RoomPage({
   const [roomName, setRoomName] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [realtime, setRealtime] = useState<Ably.Realtime | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientHash, setClientHash] = useState<string | null>(null);
   const [isGhostMode, setIsGhostMode] = useState(false);
@@ -792,13 +792,13 @@ export default function RoomPage({
 
   useEffect(() => {
     return () => {
-      if (socket) socket.disconnect();
+      if (realtime) realtime.close();
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
     };
-  }, [socket]);
+  }, [realtime]);
 
   // ── Notifications ──────────────────────────────────────────────────────────
 
@@ -963,7 +963,7 @@ export default function RoomPage({
   ) => {
     try {
       const activeClientId =
-        providedClientId ?? clientIdRef.current ?? ensureClientIdentity();
+        (providedClientId ?? clientIdRef.current ?? ensureClientIdentity()) as string;
       const headers: HeadersInit = activeClientId
         ? { 'x-client-id': activeClientId }
         : {};
@@ -981,20 +981,36 @@ export default function RoomPage({
         setLocalReactions(synced);
       }
 
-      const newSocket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
-      let socketConnected = false;
-
-      newSocket.on('connect', () => {
-        socketConnected = true;
-        stopPolling();
-        newSocket.emit('join-room', resolvedParams.slug);
+      // Initialize Ably Realtime using Next.js auth endpoint
+      const newRealtime = new Ably.Realtime({
+        authUrl: `/api/ably-auth?clientId=${encodeURIComponent(activeClientId)}`,
       });
 
-      newSocket.on('room-user-count', (count: number) =>
-        setOnlineCount(count)
-      );
+      const channel = newRealtime.channels.get(`room:${resolvedParams.slug}`);
 
-      newSocket.on('new-message', (message: Message) => {
+      newRealtime.connection.on('connected', async () => {
+        stopPolling();
+        try {
+          await channel.presence.enter();
+          const members = await channel.presence.get();
+          setOnlineCount(members.length);
+        } catch (err) {
+          console.error('Failed to enter presence:', err);
+        }
+      });
+
+      // Track online count via Presence
+      channel.presence.subscribe(() => {
+        channel.presence.get().then((members) => {
+          setOnlineCount(members.length);
+        }).catch((err) => {
+          console.error('Failed to get presence members:', err);
+        });
+      });
+
+      // Subscribe to message broadcasts
+      channel.subscribe('new-message', (messageEvent) => {
+        const message = messageEvent.data as Message;
         setMessages((prev) => {
           const filtered = prev.filter((m) => m.tempId !== message.tempId);
           const mapped = mapServerMessage(message);
@@ -1019,31 +1035,29 @@ export default function RoomPage({
         }
       });
 
-      newSocket.on(
-        'message-reactions-updated',
-        (payload: {
+      // Subscribe to reaction broadcasts
+      channel.subscribe('message-reactions-updated', (messageEvent) => {
+        const payload = messageEvent.data as {
           messageId: string;
           reactions: Array<{
             emoji: string;
             count: number;
             hashes?: string[];
           }>;
-        }) => {
-          applyServerReactionSnapshot(payload.messageId, payload.reactions);
-        }
-      );
-
-      newSocket.on('connect_error', () => {
-        if (!socketConnected) startPolling();
+        };
+        applyServerReactionSnapshot(payload.messageId, payload.reactions);
       });
-      newSocket.on('disconnect', () => {
+
+      newRealtime.connection.on('suspended', () => {
         startPolling();
       });
-      newSocket.on('error', (error: { message: string }) =>
-        toast.error(error.message)
-      );
 
-      setSocket(newSocket);
+      newRealtime.connection.on('failed', () => {
+        startPolling();
+        toast.error('Real-time connection failed. Falling back to polling.');
+      });
+
+      setRealtime(newRealtime);
       setIsVerifying(false);
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch {
@@ -1117,21 +1131,7 @@ export default function RoomPage({
         : undefined,
     };
     setMessages((prev) => [...prev, optimisticMessage]);
-    const payload = {
-      roomSlug: resolvedParams.slug,
-      content: newMessage,
-      tempId,
-      senderHash: activeHash,
-      ...(replyingTo && {
-        replyTo: {
-          messageId: replyingTo.id,
-          preview: replyingTo.content.substring(0, 100),
-        },
-      }),
-    };
-    if (socket && socket.connected) socket.emit('send-message', payload);
-    else
-      await sendMessageViaHttp(newMessage, tempId, replyingTo, activeHash);
+    await sendMessageViaHttp(newMessage, tempId, replyingTo, activeHash);
     Haptics.light();
     setNewMessage('');
     setInputRows(1);
@@ -1194,30 +1194,20 @@ export default function RoomPage({
     });
     pendingReactionsRef.current.add(key);
     try {
-      if (socket && socket.connected) {
-        socket.emit('react-message', {
-          roomSlug: resolvedParams.slug,
-          messageId,
-          emoji,
-          action,
-          clientId: activeClientId,
-        });
-      } else {
-        const response = await fetch(
-          `/api/rooms/${resolvedParams.slug}/messages/${messageId}/reactions`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-client-id': activeClientId,
-            },
-            body: JSON.stringify({ emoji, action }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to update reactions');
-        const data = await response.json();
-        applyServerReactionSnapshot(messageId, data.reactions);
-      }
+      const response = await fetch(
+        `/api/rooms/${resolvedParams.slug}/messages/${messageId}/reactions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-id': activeClientId,
+          },
+          body: JSON.stringify({ emoji, action }),
+        }
+      );
+      if (!response.ok) throw new Error('Failed to update reactions');
+      const data = await response.json();
+      applyServerReactionSnapshot(messageId, data.reactions);
     } catch {
       toast.error('Reaction failed');
       localReactionsRef.current = previousLocal;
