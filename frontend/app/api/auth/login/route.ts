@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const db = await getDb();
     const user = await db.collection<User>('users').findOne({ username });
 
-    if (!user) {
+    if (!user || !user.password) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }

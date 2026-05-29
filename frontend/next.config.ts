@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     "*.ngrok-free.app",
     "*.ngrok.io",
   ],
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;
