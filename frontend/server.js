@@ -95,6 +95,7 @@ app.prepare().then(() => {
           timestamp: new Date(),
           tempId: data.tempId,
           reactions: {},
+          senderHash: data.senderHash || null,
           ...(data.replyTo && {
             replyTo: {
               messageId: data.replyTo.messageId,
@@ -112,6 +113,7 @@ app.prepare().then(() => {
           tempId: data.tempId,
           reactions: [],
           replyTo: message.replyTo,
+          senderHash: message.senderHash,
         };
 
         io.to(data.roomSlug).emit('new-message', savedMessage);

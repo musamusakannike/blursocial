@@ -39,6 +39,7 @@ export async function GET(
         tempId: msg.tempId,
         reactions: summarizeReactions(msg.reactions ?? {}, clientHash),
         replyTo: msg.replyTo,
+        senderHash: msg.senderHash,
       })),
     });
   } catch (error) {
@@ -56,7 +57,7 @@ export async function POST(
 ) {
   try {
     const { slug } = await params;
-    const { content, tempId, replyTo } = await request.json();
+    const { content, tempId, replyTo, senderHash } = await request.json();
 
     if (!content || typeof content !== 'string' || !content.trim()) {
       return NextResponse.json(
@@ -81,6 +82,7 @@ export async function POST(
       timestamp: new Date(),
       tempId,
       reactions: {},
+      senderHash: senderHash || null,
       ...(replyTo && {
         replyTo: {
           messageId: replyTo.messageId,
@@ -100,6 +102,7 @@ export async function POST(
           tempId,
           reactions: [],
           replyTo: message.replyTo,
+          senderHash: message.senderHash,
         },
       },
       { status: 201 }

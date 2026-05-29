@@ -14,6 +14,7 @@ import {
   FiCopy,
   FiUsers,
   FiAlertCircle,
+  FiEyeOff,
 } from 'react-icons/fi';
 import Logo from '@/components/Logo';
 import Button from '@/components/Button';
@@ -27,6 +28,7 @@ import {
   isNotificationEnabledForRoom,
   setNotificationForRoom
 } from '@/lib/notifications';
+import { getSpectralProfile } from '@/lib/avatar';
 
 type ReactionSummary = {
   emoji: string;
@@ -53,6 +55,7 @@ interface Message {
   isOptimistic?: boolean;
   reactions: ReactionSummary[];
   replyTo?: { messageId: string; preview: string };
+  senderHash?: string | null;
 }
 
 type SetMap = Record<string, Set<string>>;
@@ -148,106 +151,153 @@ function MessageBubble({
     toast.success('Copied!');
   };
 
+  const isGhost = !message.senderHash;
+  const profile = !isGhost ? getSpectralProfile(message.senderHash) : null;
+
   return (
-    <div className={`animate-message ${message.isOptimistic ? 'opacity-50' : ''}`}>
-      <div
-        className="bg-[var(--surface-1)] rounded-2xl border border-[var(--border-primary)] p-4 max-w-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow duration-300 group"
-        {...longPress}
-      >
-        {/* Reply quote */}
-        {message.replyTo && (
-          <div className="mb-3 pl-3 border-l-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 rounded-r-xl p-2.5">
-            <div className="flex items-center gap-1.5 mb-1">
-              <FiCornerUpLeft className="w-3 h-3 text-[var(--accent-primary)]" />
-              <span className="text-xs font-medium text-[var(--accent-primary)]">Replying to</span>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] line-clamp-2">{message.replyTo.preview}</p>
+    <div className={`animate-message ${message.isOptimistic ? 'opacity-50' : ''} flex items-start gap-3.5 my-3`}>
+      {/* Avatar column */}
+      {!isGhost && profile ? (
+        <div
+          className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white border border-white/10 shadow-[var(--shadow-sm)] hover:scale-105 transition-transform duration-200"
+          style={{
+            background: `linear-gradient(135deg, ${profile.gradient.start}, ${profile.gradient.end})`,
+            boxShadow: `0 0 12px ${profile.gradient.start}33`
+          }}
+          title={profile.alias}
+        >
+          {profile.initials}
+        </div>
+      ) : (
+        <div 
+          className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center border border-dashed border-[var(--border-primary)] bg-[var(--surface-1)]/30 text-[var(--text-tertiary)] shadow-[var(--shadow-sm)]"
+          title="Ghost Mode (Extra Anonymity)"
+        >
+          <FiEyeOff className="w-4 h-4 opacity-50" />
+        </div>
+      )}
+
+      {/* Message content column */}
+      <div className="flex-1 min-w-0">
+        {/* Alias / Pseudonym Header */}
+        {!isGhost && profile && (
+          <div className="flex items-center gap-2 mb-1.5 pl-1 select-none">
+            <span
+              className="text-xs font-semibold tracking-[-0.01em]"
+              style={{
+                background: `linear-gradient(135deg, ${profile.gradient.start}, ${profile.gradient.end})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              {profile.alias}
+            </span>
           </div>
         )}
 
-        {/* Content + timestamp */}
-        <div className="flex items-start justify-between gap-4">
-          <p className="text-[var(--text-primary)] break-words whitespace-pre-wrap flex-1 leading-relaxed">
-            {message.content}
-          </p>
-          <span
-            className={`text-[10px] uppercase tracking-[0.15em] text-[var(--text-tertiary)] whitespace-nowrap transition-opacity duration-200 mt-1 ${
-              showTime ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            }`}
-            aria-label={message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          >
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-
-        {/* Reactions + actions */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          {message.reactions.map((reaction) => {
-            const active = isReactionActive(message.id, reaction.emoji, reaction, localReactions);
-            return (
-              <button
-                key={reaction.emoji}
-                onClick={() => onReactionToggle(message.id, reaction.emoji)}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
-                  active
-                    ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--accent-primary)]'
-                    : 'border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5'
-                }`}
-                aria-pressed={active}
-              >
-                <span className="text-base leading-none">{reaction.emoji}</span>
-                <span className="text-xs font-medium">{reaction.count}</span>
-              </button>
-            );
-          })}
-
-          {/* Add reaction */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => onSetReactionPicker(activeReactionPicker === message.id ? null : message.id)}
-              className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-              aria-label="Add reaction"
-            >
-              {activeReactionPicker === message.id ? <FiSmile className="w-3.5 h-3.5" /> : <FiPlus className="w-3.5 h-3.5" />}
-            </button>
-
-            {activeReactionPicker === message.id && (
-              <div className="absolute bottom-full left-0 mb-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-2xl shadow-[var(--shadow-lg)] p-1.5 flex gap-0.5 animate-scale-in z-10">
-                {QUICK_REACTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => { onSetReactionPicker(null); onReactionToggle(message.id, emoji); }}
-                    className="w-9 h-9 flex items-center justify-center text-lg rounded-xl hover:bg-[var(--accent-primary)]/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                    aria-label={`React with ${emoji}`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
+        <div
+          className={`p-4 rounded-2xl border transition-all duration-300 group max-w-2xl shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] ${
+            isGhost
+              ? 'bg-[var(--surface-1)]/40 border-dashed border-[var(--border-primary)] hover:border-[var(--border-accent)]'
+              : 'bg-[var(--surface-1)] border-[var(--border-primary)] hover:border-[var(--border-accent)]'
+          }`}
+          {...longPress}
+        >
+          {/* Reply quote */}
+          {message.replyTo && (
+            <div className="mb-3 pl-3 border-l-2 border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 rounded-r-xl p-2.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <FiCornerUpLeft className="w-3 h-3 text-[var(--accent-primary)]" />
+                <span className="text-xs font-medium text-[var(--accent-primary)]">Replying to</span>
               </div>
-            )}
+              <p className="text-sm text-[var(--text-secondary)] line-clamp-2">{message.replyTo.preview}</p>
+            </div>
+          )}
+
+          {/* Content + timestamp */}
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-[var(--text-primary)] break-words whitespace-pre-wrap flex-1 leading-relaxed text-[15px]">
+              {message.content}
+            </p>
+            <span
+              className={`text-[10px] uppercase tracking-[0.15em] text-[var(--text-tertiary)] whitespace-nowrap transition-opacity duration-200 mt-1 ${
+                showTime ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}
+              aria-label={message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            >
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
 
-          {/* Reply */}
-          <button
-            type="button"
-            onClick={() => onReply(message)}
-            className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-            aria-label="Reply to message"
-          >
-            <FiCornerUpLeft className="w-3.5 h-3.5" />
-          </button>
+          {/* Reactions + actions */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {message.reactions.map((reaction) => {
+              const active = isReactionActive(message.id, reaction.emoji, reaction, localReactions);
+              return (
+                <button
+                  key={reaction.emoji}
+                  onClick={() => onReactionToggle(message.id, reaction.emoji)}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${
+                    active
+                      ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--accent-primary)]'
+                      : 'border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5'
+                  }`}
+                  aria-pressed={active}
+                >
+                  <span className="text-base leading-none">{reaction.emoji}</span>
+                  <span className="text-xs font-medium">{reaction.count}</span>
+                </button>
+              );
+            })}
 
-          {/* Copy */}
-          <button
-            type="button"
-            onClick={copyMessage}
-            className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-            aria-label="Copy message"
-          >
-            <FiCopy className="w-3.5 h-3.5" />
-          </button>
+            {/* Add reaction */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => onSetReactionPicker(activeReactionPicker === message.id ? null : message.id)}
+                className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                aria-label="Add reaction"
+              >
+                {activeReactionPicker === message.id ? <FiSmile className="w-3.5 h-3.5" /> : <FiPlus className="w-3.5 h-3.5" />}
+              </button>
+
+              {activeReactionPicker === message.id && (
+                <div className="absolute bottom-full left-0 mb-2 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-2xl shadow-[var(--shadow-lg)] p-1.5 flex gap-0.5 animate-scale-in z-10">
+                  {QUICK_REACTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => { onSetReactionPicker(null); onReactionToggle(message.id, emoji); }}
+                      className="w-9 h-9 flex items-center justify-center text-lg rounded-xl hover:bg-[var(--accent-primary)]/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                      aria-label={`React with ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reply */}
+            <button
+              type="button"
+              onClick={() => onReply(message)}
+              className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+              aria-label="Reply to message"
+            >
+              <FiCornerUpLeft className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Copy */}
+            <button
+              type="button"
+              onClick={copyMessage}
+              className="flex items-center justify-center w-7 h-7 rounded-full border border-[var(--border-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-accent)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+              aria-label="Copy message"
+            >
+              <FiCopy className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -267,6 +317,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
   const [socket, setSocket] = useState<Socket | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [clientHash, setClientHash] = useState<string | null>(null);
+  const [isGhostMode, setIsGhostMode] = useState(false);
   const [localReactions, setLocalReactions] = useState<SetMap>({});
   const [activeReactionPicker, setActiveReactionPicker] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -351,6 +402,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
       ? msg.reactions.map((r: any) => ({ emoji: r.emoji, count: r.count, reacted: Boolean(r.reacted), hashes: r.hashes }))
       : [],
     replyTo: msg.replyTo,
+    senderHash: msg.senderHash,
   }), []);
 
   const applyServerReactionSnapshot = useCallback((
@@ -552,12 +604,12 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
     }
   };
 
-  const sendMessageViaHttp = async (content: string, tempId: string, replyTo: Message | null = null) => {
+  const sendMessageViaHttp = async (content: string, tempId: string, replyTo: Message | null = null, senderHash: string | null = null) => {
     try {
       const response = await fetch(`/api/rooms/${resolvedParams.slug}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, tempId, ...(replyTo && { replyTo: { messageId: replyTo.id, preview: replyTo.content.substring(0, 100) } }) }),
+        body: JSON.stringify({ content, tempId, senderHash, ...(replyTo && { replyTo: { messageId: replyTo.id, preview: replyTo.content.substring(0, 100) } }) }),
       });
       if (!response.ok) throw new Error('Failed to send message');
       const { message } = await response.json();
@@ -578,14 +630,16 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
     setShowScrollButton(false);
     setUnreadCount(0);
     const tempId = nanoid();
+    const activeHash = isGhostMode ? null : clientHash;
     const optimisticMessage: Message = {
       id: tempId, content: newMessage, timestamp: new Date(), tempId, isOptimistic: true, reactions: [],
+      senderHash: activeHash,
       replyTo: replyingTo ? { messageId: replyingTo.id, preview: replyingTo.content.substring(0, 100) } : undefined,
     };
     setMessages((prev) => [...prev, optimisticMessage]);
-    const payload = { roomSlug: resolvedParams.slug, content: newMessage, tempId, ...(replyingTo && { replyTo: { messageId: replyingTo.id, preview: replyingTo.content.substring(0, 100) } }) };
+    const payload = { roomSlug: resolvedParams.slug, content: newMessage, tempId, senderHash: activeHash, ...(replyingTo && { replyTo: { messageId: replyingTo.id, preview: replyingTo.content.substring(0, 100) } }) };
     if (socket && socket.connected) socket.emit('send-message', payload);
-    else await sendMessageViaHttp(newMessage, tempId, replyingTo);
+    else await sendMessageViaHttp(newMessage, tempId, replyingTo, activeHash);
     Haptics.light();
     setNewMessage('');
     setReplyingTo(null);
@@ -815,14 +869,36 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
               </button>
             </div>
           )}
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {/* Ghost Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsGhostMode(!isGhostMode);
+                Haptics.light();
+              }}
+              className={`flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-300 focus:outline-none shrink-0 ${
+                isGhostMode
+                  ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--accent-primary)] shadow-[0_0_12px_var(--accent-glow)]'
+                  : 'bg-[var(--bg-primary)] border-[var(--border-primary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-accent)]'
+              }`}
+              title={isGhostMode ? 'Ghost Mode: Maximum Anonymity' : 'Spectral Mode: Standard Anonymity'}
+              aria-pressed={isGhostMode}
+            >
+              <FiEyeOff className={`w-5 h-5 transition-transform duration-300 ${isGhostMode ? 'scale-110' : 'opacity-60'}`} />
+            </button>
+
             <input
               ref={inputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--accent-glow)] transition-all"
+              placeholder={isGhostMode ? "Ghost Mode Active: Maximum anonymity (no name/avatar)..." : "Type your message anonymously..."}
+              className={`flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] text-[var(--text-primary)] border placeholder:text-[var(--text-tertiary)] focus:outline-none transition-all ${
+                isGhostMode
+                  ? 'border-dashed border-[var(--accent-primary)]/40 focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--accent-glow)]'
+                  : 'border-[var(--border-primary)] focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_var(--accent-glow)]'
+              }`}
               maxLength={1000}
             />
             <Button
@@ -830,7 +906,7 @@ export default function RoomPage({ params }: { params: Promise<{ slug: string }>
               variant="primary"
               size="md"
               disabled={!newMessage.trim()}
-              className="flex items-center gap-2 px-5"
+              className="flex items-center gap-2 px-5 shrink-0"
             >
               <FiSend className="w-4 h-4" />
               <span className="hidden sm:inline">Send</span>

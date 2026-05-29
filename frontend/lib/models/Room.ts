@@ -23,4 +23,5 @@ export interface Message {
     messageId: string;
     preview: string;
   };
+  senderHash?: string | null;
 }

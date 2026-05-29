@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { io, Socket } from 'socket.io-client';
-import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users, ArrowDown, Copy } from 'lucide-react-native';
+import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users, ArrowDown, Copy, EyeOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import uuid from 'react-native-uuid';
 import Animated, {
@@ -42,6 +42,7 @@ import {
   scheduleLocalNotification,
 } from '@/utils/notifications';
 import * as Haptics from 'expo-haptics';
+import { getSpectralProfile } from '@/utils/avatar';
 
 const QUICK_REACTIONS = ['👍', '😂', '❤️', '🔥', '🎉', '😮'];
 
@@ -81,6 +82,7 @@ export default function RoomScreen() {
   const [clientHash, setClientHash] = useState<string>('');
   const [activeReactionPicker, setActiveReactionPicker] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [isGhostMode, setIsGhostMode] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasAskedNotifications, setHasAskedNotifications] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
@@ -303,6 +305,7 @@ export default function RoomScreen() {
     if (!newMessage.trim() || !socket) return;
 
     const tempId = uuid.v4() as string;
+    const activeHash = isGhostMode ? null : clientHash;
     const optimisticMessage: Message = {
       id: tempId,
       content: newMessage.trim(),
@@ -310,6 +313,7 @@ export default function RoomScreen() {
       tempId,
       isOptimistic: true,
       reactions: [],
+      senderHash: activeHash,
       ...(replyingTo && {
         replyTo: {
           messageId: replyingTo.id,
@@ -330,6 +334,7 @@ export default function RoomScreen() {
       roomSlug: slug,
       content: optimisticMessage.content,
       tempId,
+      senderHash: activeHash,
       ...(replyingTo && {
         replyTo: {
           messageId: replyingTo.id,
@@ -377,6 +382,9 @@ export default function RoomScreen() {
 
     const showUnreadDivider = lastReadMessageIndex !== null && index === lastReadMessageIndex + 1;
 
+    const isGhost = !item.senderHash;
+    const profile = !isGhost ? getSpectralProfile(item.senderHash) : null;
+
     return (
       <AnimatedMessageItem>
         {showUnreadDivider && (
@@ -398,76 +406,108 @@ export default function RoomScreen() {
               })}
             </Text>
           )}
-          <Pressable
-            onLongPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setActiveReactionPicker(item.id);
-            }}
-            style={[styles.messageBubble, item.isOptimistic && styles.optimisticMessage]}
-          >
-            {item.replyTo && (
-              <View style={styles.replyPreview}>
-                <CornerUpLeft size={12} color={Colors.text.tertiary} strokeWidth={2.5} style={{ marginRight: 4 }} />
-                <Text style={styles.replyText} numberOfLines={1}>
-                  {item.replyTo.preview}
+
+          <View style={styles.messageRow}>
+            {/* Avatar Column */}
+            {!isGhost && profile ? (
+              <LinearGradient
+                colors={[profile.gradient.start, profile.gradient.end]}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatarText}>{profile.initials}</Text>
+              </LinearGradient>
+            ) : (
+              <View style={styles.ghostAvatar}>
+                <EyeOff size={12} color={Colors.text.tertiary} style={{ opacity: 0.5 }} />
+              </View>
+            )}
+
+            {/* Bubble Column */}
+            <View style={styles.bubbleColumn}>
+              {/* Visual Alias Name */}
+              {!isGhost && profile && (
+                <Text style={[styles.aliasText, { color: profile.gradient.start }]}>
+                  {profile.alias}
                 </Text>
-              </View>
-            )}
-            <Text style={styles.messageText}>{item.content}</Text>
-            {item.reactions.length > 0 && (
-              <View style={styles.reactionsContainer}>
-                {item.reactions.map((reaction, idx) => (
-                  <Pressable
-                    key={idx}
-                    onPress={() => handleReaction(item.id, reaction.emoji)}
-                    style={[
-                      styles.reactionBadge,
-                      reaction.reacted && styles.reactionBadgeActive,
-                    ]}
-                  >
-                    <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.reactionCount,
-                        reaction.reacted && styles.reactionCountActive,
-                      ]}
-                    >
-                      {reaction.count}
+              )}
+
+              <Pressable
+                onLongPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setActiveReactionPicker(item.id);
+                }}
+                style={[
+                  styles.messageBubble, 
+                  isGhost && styles.ghostMessageBubble,
+                  item.isOptimistic && styles.optimisticMessage
+                ]}
+              >
+                {item.replyTo && (
+                  <View style={styles.replyPreview}>
+                    <CornerUpLeft size={12} color={Colors.text.tertiary} strokeWidth={2.5} style={{ marginRight: 4 }} />
+                    <Text style={styles.replyText} numberOfLines={1}>
+                      {item.replyTo.preview}
                     </Text>
-                  </Pressable>
-                ))}
+                  </View>
+                )}
+                <Text style={styles.messageText}>{item.content}</Text>
+                {item.reactions.length > 0 && (
+                  <View style={styles.reactionsContainer}>
+                    {item.reactions.map((reaction, idx) => (
+                      <Pressable
+                        key={idx}
+                        onPress={() => handleReaction(item.id, reaction.emoji)}
+                        style={[
+                          styles.reactionBadge,
+                          reaction.reacted && styles.reactionBadgeActive,
+                        ]}
+                      >
+                        <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.reactionCount,
+                            reaction.reacted && styles.reactionCountActive,
+                          ]}
+                        >
+                          {reaction.count}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </Pressable>
+
+              <View style={styles.messageActions}>
+                <Pressable
+                  onPress={() => {
+                    setReplyingTo(item);
+                    inputRef.current?.focus();
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={styles.messageActionBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <CornerUpLeft size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setActiveReactionPicker(item.id);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={styles.messageActionBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Smile size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+                </Pressable>
+                <Pressable
+                  onPress={() => handleCopyMessage(item.content)}
+                  style={styles.messageActionBtn}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Copy size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+                </Pressable>
               </View>
-            )}
-          </Pressable>
-          <View style={styles.messageActions}>
-            <Pressable
-              onPress={() => {
-                setReplyingTo(item);
-                inputRef.current?.focus();
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={styles.messageActionBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <CornerUpLeft size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setActiveReactionPicker(item.id);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={styles.messageActionBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Smile size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
-            </Pressable>
-            <Pressable
-              onPress={() => handleCopyMessage(item.content)}
-              style={styles.messageActionBtn}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Copy size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
-            </Pressable>
+            </View>
           </View>
         </View>
       </AnimatedMessageItem>
@@ -612,10 +652,32 @@ export default function RoomScreen() {
           </View>
         )}
         <View style={styles.inputContainer}>
+          {/* Ghost Mode Toggle */}
+          <Pressable
+            onPress={() => {
+              setIsGhostMode(!isGhostMode);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            style={[
+              styles.ghostToggleButton,
+              isGhostMode && styles.ghostToggleButtonActive,
+            ]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <EyeOff
+              size={18}
+              color={isGhostMode ? '#FFF' : Colors.text.tertiary}
+              strokeWidth={2.5}
+            />
+          </Pressable>
+
           <TextInput
             ref={inputRef}
-            style={styles.input}
-            placeholder="Type a message anonymously..."
+            style={[
+              styles.input,
+              isGhostMode && styles.ghostInput
+            ]}
+            placeholder={isGhostMode ? "Ghost Mode active (no name/avatar)..." : "Type your message anonymously..."}
             placeholderTextColor={Colors.text.tertiary}
             value={newMessage}
             onChangeText={setNewMessage}
@@ -992,6 +1054,67 @@ const styles = StyleSheet.create({
   },
   reactionPickerEmoji: {
     fontSize: 28,
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  avatarGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 12,
+    fontFamily: 'Manrope_700Bold',
+    color: '#FFFFFF',
+  },
+  ghostAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.border.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bubbleColumn: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  aliasText: {
+    fontSize: 12.5,
+    fontFamily: 'Manrope_700Bold',
+    marginBottom: 4,
+    paddingLeft: 2,
+  },
+  ghostMessageBubble: {
+    backgroundColor: 'rgba(18, 22, 26, 0.45)',
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 107, 157, 0.3)',
+  },
+  ghostInput: {
+    borderStyle: 'dashed',
+    borderColor: Colors.accent.primary,
+  },
+  ghostToggleButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.bg.tertiary,
+    borderWidth: 1,
+    borderColor: Colors.border.primary,
+  },
+  ghostToggleButtonActive: {
+    backgroundColor: Colors.accent.primary,
+    borderColor: Colors.accent.primary,
   },
   unreadDivider: {
     flexDirection: 'row',

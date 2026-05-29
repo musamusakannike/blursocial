@@ -7,6 +7,8 @@ export interface Room {
   name: string;
   slug: string;
   createdAt: Date;
+  duration?: number;
+  expiresAt?: Date | null;
 }
 
 export interface ReactionSummary {
@@ -27,6 +29,7 @@ export interface Message {
     messageId: string;
     preview: string;
   };
+  senderHash?: string | null;
 }
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
