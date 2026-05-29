@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "439305734244",
+    "project_id": "blur-36b53",
+    "storage_bucket": "blur-36b53.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439305734244:android:02a36be55ca75efaedf771",
+        "android_client_info": {
+          "package_name": "com.blur.social"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "439305734244-o4vcarrtlf6ltrovv9414bsfcg0dqlr1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZ2UTSP19sSg1b0hQmv2wistpBQ-IspWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "439305734244-o4vcarrtlf6ltrovv9414bsfcg0dqlr1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

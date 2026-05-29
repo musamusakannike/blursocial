@@ -117,6 +117,18 @@ export async function POST(
       console.warn('Warning: ABLY_API_KEY is not set. Real-time broadcast skipped.');
     }
 
+    // Trigger push notification for mobile users (fire-and-forget)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://blursocial.codiac.online';
+    fetch(`${baseUrl}/api/push/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: `New message in ${room.name}`,
+        body: message.content.substring(0, 100),
+        roomSlug: slug,
+      }),
+    }).catch(() => {});
+
     return NextResponse.json(
       {
         message: savedMessage,
