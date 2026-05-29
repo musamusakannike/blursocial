@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title: "Blur - Anonymous Chat Rooms",
     description: "Create secure, password-protected chat rooms and share them instantly.",
     images: ["/og-image.png"],
-    creator: "@blursocial",
+    creator: "@musa_codes",
   },
   robots: {
     index: true,
