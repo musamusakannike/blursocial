@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+  withRepeat,
+} from 'react-native-reanimated';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import Card from '@/components/Card';
+import Logo from '@/components/Logo';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
@@ -26,6 +34,15 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Glow position animation
+  const glowTranslateX = useSharedValue(0);
+  const glowScale = useSharedValue(1);
+
+  useEffect(() => {
+    glowTranslateX.value = withRepeat(withTiming(30, { duration: 6000 }), -1, true);
+    glowScale.value = withRepeat(withTiming(1.15, { duration: 8000 }), -1, true);
+  }, []);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -56,7 +73,7 @@ export default function LoginScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/dashboard');
     } catch (error) {
-      console.error("[LOGIN ERROR]:", error)
+      console.error("[LOGIN ERROR]:", error);
       showToast('Something went wrong. Please try again.', 'error');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -64,8 +81,21 @@ export default function LoginScreen() {
     }
   };
 
+  const glowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: glowTranslateX.value }, { scale: glowScale.value }],
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Background ambient glow (Top-Right) */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Animated.View style={[styles.radialGlow, glowStyle]} />
+        <LinearGradient
+          colors={['transparent', Colors.bg.primary]}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -80,46 +110,49 @@ export default function LoginScreen() {
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2} />
+            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2.5} />
           </Pressable>
 
           <View style={styles.header}>
-            <LinearGradient
-              colors={[Colors.accent.primary, Colors.accent.secondary]}
-              style={styles.logo}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <MessageCircle size={32} color="#fff" strokeWidth={2.5} />
-            </LinearGradient>
+            <View style={styles.logoContainer}>
+              <Logo size="lg" />
+            </View>
             <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to Blur</Text>
+            <Text style={styles.subtitle}>Sign in to continue chatting anonymously</Text>
           </View>
 
-          <View style={styles.form}>
-            <Input
-              label="Username"
-              placeholder="Enter your username"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Input
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-            <Button onPress={handleLogin} isLoading={isLoading} size="lg" style={styles.loginButton}>
-              Sign In
-            </Button>
-          </View>
+          {/* Form wrapped in an elevated premium card */}
+          <Card style={styles.formCard}>
+            <View style={styles.form}>
+              <Input
+                label="Username"
+                placeholder="Enter your username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Input
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Button
+                onPress={handleLogin}
+                isLoading={isLoading}
+                size="lg"
+                style={styles.loginButton}
+              >
+                Sign In
+              </Button>
+            </View>
+          </Card>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{"Don't have an account? "}</Text>
             <Pressable onPress={() => router.push('/register')}>
               <Text style={styles.footerLink}>Create one</Text>
             </Pressable>
@@ -135,6 +168,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg.primary,
   },
+  // Radial glow overlay at top-right
+  radialGlow: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(255, 107, 157, 0.15)', // pink brand glow
+  },
   keyboardView: {
     flex: 1,
   },
@@ -145,30 +188,32 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
   },
   header: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
   },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+  logoContainer: {
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 32,
     fontFamily: 'Manrope_700Bold',
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
+    letterSpacing: -0.8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  formCard: {
+    padding: Spacing.xl,
+    backgroundColor: 'rgba(18, 22, 26, 0.8)', // glassmorphism blend
   },
   form: {
     gap: Spacing.lg,
@@ -180,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.xl,
+    marginTop: Spacing.xl + 10,
   },
   footerText: {
     fontSize: 14,

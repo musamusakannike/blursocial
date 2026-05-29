@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,9 +17,19 @@ import { io, Socket } from 'socket.io-client';
 import { ArrowLeft, Send, Smile, X, CornerUpLeft, Users, ArrowDown, Copy } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import uuid from 'react-native-uuid';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withRepeat,
+} from 'react-native-reanimated';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import Card from '@/components/Card';
+import Logo from '@/components/Logo';
 import { Colors, Spacing, Radius, Shadows } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 import { API_URL, SOCKET_URL } from '@/constants/Config';
@@ -34,6 +44,26 @@ import {
 import * as Haptics from 'expo-haptics';
 
 const QUICK_REACTIONS = ['👍', '😂', '❤️', '🔥', '🎉', '😮'];
+
+// Custom wrapper to add slide up & scale spring entrances to each new message (animate-message)
+const AnimatedMessageItem: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const scale = useSharedValue(0.92);
+  const translateY = useSharedValue(12);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 160 });
+    translateY.value = withSpring(0, { damping: 15, stiffness: 160 });
+    opacity.value = withTiming(1, { duration: 250 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
+  return <Animated.View style={animatedStyle}>{children}</Animated.View>;
+};
 
 export default function RoomScreen() {
   const router = useRouter();
@@ -62,6 +92,15 @@ export default function RoomScreen() {
   const inputRef = useRef<TextInput>(null);
   const isAtBottomRef = useRef(true);
   const messagesRef = useRef<Message[]>([]);
+
+  // Glow position animation for password gate
+  const glowTranslateX = useSharedValue(0);
+  const glowScale = useSharedValue(1);
+
+  useEffect(() => {
+    glowTranslateX.value = withRepeat(withTiming(30, { duration: 6000 }), -1, true);
+    glowScale.value = withRepeat(withTiming(1.15, { duration: 8000 }), -1, true);
+  }, []);
 
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
@@ -339,7 +378,7 @@ export default function RoomScreen() {
     const showUnreadDivider = lastReadMessageIndex !== null && index === lastReadMessageIndex + 1;
 
     return (
-      <View>
+      <AnimatedMessageItem>
         {showUnreadDivider && (
           <View style={styles.unreadDivider}>
             <View style={styles.unreadDividerLine} />
@@ -359,74 +398,98 @@ export default function RoomScreen() {
               })}
             </Text>
           )}
-        <Pressable
-          onLongPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setActiveReactionPicker(item.id);
-          }}
-          style={[styles.messageBubble, item.isOptimistic && styles.optimisticMessage]}
-        >
-          {item.replyTo && (
-            <View style={styles.replyPreview}>
-              <CornerUpLeft size={14} color={Colors.text.tertiary} strokeWidth={2} />
-              <Text style={styles.replyText} numberOfLines={1}>
-                {item.replyTo.preview}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.messageText}>{item.content}</Text>
-          {item.reactions.length > 0 && (
-            <View style={styles.reactionsContainer}>
-              {item.reactions.map((reaction, idx) => (
-                <Pressable
-                  key={idx}
-                  onPress={() => handleReaction(item.id, reaction.emoji)}
-                  style={[
-                    styles.reactionBadge,
-                    reaction.reacted && styles.reactionBadgeActive,
-                  ]}
-                >
-                  <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                  <Text style={styles.reactionCount}>{reaction.count}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </Pressable>
-        <View style={styles.messageActions}>
           <Pressable
-            onPress={() => {
-              setReplyingTo(item);
-              inputRef.current?.focus();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <CornerUpLeft size={16} color={Colors.text.tertiary} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            onPress={() => {
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setActiveReactionPicker(item.id);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={[styles.messageBubble, item.isOptimistic && styles.optimisticMessage]}
           >
-            <Smile size={16} color={Colors.text.tertiary} strokeWidth={2} />
+            {item.replyTo && (
+              <View style={styles.replyPreview}>
+                <CornerUpLeft size={12} color={Colors.text.tertiary} strokeWidth={2.5} style={{ marginRight: 4 }} />
+                <Text style={styles.replyText} numberOfLines={1}>
+                  {item.replyTo.preview}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.messageText}>{item.content}</Text>
+            {item.reactions.length > 0 && (
+              <View style={styles.reactionsContainer}>
+                {item.reactions.map((reaction, idx) => (
+                  <Pressable
+                    key={idx}
+                    onPress={() => handleReaction(item.id, reaction.emoji)}
+                    style={[
+                      styles.reactionBadge,
+                      reaction.reacted && styles.reactionBadgeActive,
+                    ]}
+                  >
+                    <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.reactionCount,
+                        reaction.reacted && styles.reactionCountActive,
+                      ]}
+                    >
+                      {reaction.count}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </Pressable>
-          <Pressable
-            onPress={() => handleCopyMessage(item.content)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Copy size={16} color={Colors.text.tertiary} strokeWidth={2} />
-          </Pressable>
+          <View style={styles.messageActions}>
+            <Pressable
+              onPress={() => {
+                setReplyingTo(item);
+                inputRef.current?.focus();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={styles.messageActionBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <CornerUpLeft size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setActiveReactionPicker(item.id);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={styles.messageActionBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Smile size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+            </Pressable>
+            <Pressable
+              onPress={() => handleCopyMessage(item.content)}
+              style={styles.messageActionBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Copy size={14} color={Colors.text.tertiary} strokeWidth={2.5} />
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </AnimatedMessageItem>
     );
   };
+
+  const glowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: glowTranslateX.value }, { scale: glowScale.value }],
+  }));
 
   if (!isVerified) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Background glow overlay */}
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <Animated.View style={[styles.radialGlow, glowStyle]} />
+          <LinearGradient
+            colors={['transparent', Colors.bg.primary]}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </View>
+
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.verifyContainer}
@@ -436,22 +499,34 @@ export default function RoomScreen() {
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2} />
+            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2.5} />
           </Pressable>
-          <Text style={styles.verifyTitle}>Enter Room Password</Text>
-          <Text style={styles.verifySubtitle}>This room is password-protected</Text>
-          <Input
-            label="Password"
-            placeholder="Enter the room password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            style={styles.verifyInput}
-          />
-          <Button onPress={handleVerify} isLoading={isVerifying} size="lg">
-            Join Room
-          </Button>
+
+          <View style={styles.verifyHeader}>
+            <Logo size="lg" />
+            <Text style={styles.verifyTitle}>Room Protected</Text>
+            <Text style={styles.verifySubtitle}>Enter the room password to join the chat</Text>
+          </View>
+
+          <Card style={styles.verifyCard}>
+            <Input
+              label="Password"
+              placeholder="Enter the room password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              style={styles.verifyInput}
+            />
+            <Button
+              onPress={handleVerify}
+              isLoading={isVerifying}
+              size="lg"
+              style={styles.verifyBtn}
+            >
+              Join Room
+            </Button>
+          </Card>
         </KeyboardAvoidingView>
       </SafeAreaView>
     );
@@ -459,12 +534,14 @@ export default function RoomScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header bar */}
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.headerCircleBtn}
         >
-          <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2} />
+          <ArrowLeft size={20} color={Colors.text.primary} strokeWidth={2.5} />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -473,7 +550,7 @@ export default function RoomScreen() {
           <View style={styles.headerStatusContainer}>
             {onlineCount !== null && (
               <View style={styles.onlineCountContainer}>
-                <Users size={12} color={Colors.text.tertiary} strokeWidth={2} />
+                <Users size={12} color={Colors.text.tertiary} strokeWidth={2.5} />
                 <Text style={styles.onlineCountText}>{onlineCount} online</Text>
               </View>
             )}
@@ -483,9 +560,10 @@ export default function RoomScreen() {
             </View>
           </View>
         </View>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 36 }} />
       </View>
 
+      {/* Messages list container */}
       <View style={styles.listContainer}>
         <FlatList
           ref={flatListRef}
@@ -500,7 +578,7 @@ export default function RoomScreen() {
 
         {showScrollButton && (
           <Pressable
-            style={styles.scrollButton}
+            style={[styles.scrollButton, Shadows.glow]}
             onPress={scrollToBottom}
           >
             <ArrowDown size={20} color="#FFFFFF" strokeWidth={2.5} />
@@ -515,6 +593,7 @@ export default function RoomScreen() {
         )}
       </View>
 
+      {/* Bottom input section */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -522,13 +601,13 @@ export default function RoomScreen() {
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <View style={styles.replyingToContent}>
-              <CornerUpLeft size={16} color={Colors.accent.primary} strokeWidth={2} />
+              <CornerUpLeft size={16} color={Colors.accent.primary} strokeWidth={2.5} />
               <Text style={styles.replyingToText} numberOfLines={1}>
                 Replying to: {replyingTo.content}
               </Text>
             </View>
-            <Pressable onPress={() => setReplyingTo(null)}>
-              <X size={20} color={Colors.text.secondary} strokeWidth={2} />
+            <Pressable onPress={() => setReplyingTo(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <X size={20} color={Colors.text.secondary} strokeWidth={2.5} />
             </Pressable>
           </View>
         )}
@@ -536,7 +615,7 @@ export default function RoomScreen() {
           <TextInput
             ref={inputRef}
             style={styles.input}
-            placeholder="Type a message..."
+            placeholder="Type a message anonymously..."
             placeholderTextColor={Colors.text.tertiary}
             value={newMessage}
             onChangeText={setNewMessage}
@@ -546,17 +625,21 @@ export default function RoomScreen() {
           <Pressable
             onPress={handleSendMessage}
             disabled={!newMessage.trim()}
-            style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton,
+              newMessage.trim() ? styles.sendButtonActive : styles.sendButtonDisabled,
+            ]}
           >
             <Send
-              size={20}
-              color={newMessage.trim() ? Colors.accent.primary : Colors.text.tertiary}
-              strokeWidth={2}
+              size={18}
+              color={newMessage.trim() ? '#fff' : Colors.text.tertiary}
+              strokeWidth={2.5}
             />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
 
+      {/* Reactions Overlay */}
       <Modal
         visible={activeReactionPicker !== null}
         transparent
@@ -586,38 +669,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg.primary,
   },
+  // Radial glow overlay at top-right
+  radialGlow: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(255, 107, 157, 0.12)',
+  },
   verifyContainer: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    gap: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   backButton: {
+    marginTop: Spacing.md,
     marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
+  },
+  verifyHeader: {
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
   },
   verifyTitle: {
     fontSize: 28,
     fontFamily: 'Manrope_700Bold',
     color: Colors.text.primary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    letterSpacing: -0.6,
   },
   verifySubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  verifyCard: {
+    padding: Spacing.xl,
+    backgroundColor: 'rgba(18, 22, 26, 0.8)',
+    gap: Spacing.lg,
   },
   verifyInput: {
-    marginBottom: Spacing.md,
+    width: '100%',
+  },
+  verifyBtn: {
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md - 2,
     backgroundColor: Colors.bg.secondary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.primary,
+  },
+  headerCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   headerCenter: {
     flex: 1,
@@ -628,6 +746,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Manrope_600SemiBold',
     color: Colors.text.primary,
+    letterSpacing: -0.2,
   },
   headerSubtitle: {
     fontSize: 12,
@@ -638,6 +757,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    marginTop: 2,
   },
   onlineCountContainer: {
     flexDirection: 'row',
@@ -658,30 +778,38 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.status.success,
+  },
+  listContainer: {
+    flex: 1,
+    position: 'relative',
   },
   messagesList: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl + 20,
   },
   messageContainer: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md + 4,
   },
   messageTime: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.tertiary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+    letterSpacing: 0.2,
   },
   messageBubble: {
-    backgroundColor: Colors.bg.secondary,
-    borderRadius: Radius.md,
+    backgroundColor: 'rgba(18, 22, 26, 0.75)',
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border.primary,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md - 2,
     maxWidth: '85%',
     alignSelf: 'flex-start',
+    ...Shadows.sm,
   },
   optimisticMessage: {
     opacity: 0.6,
@@ -689,24 +817,24 @@ const styles = StyleSheet.create({
   replyPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
     paddingBottom: Spacing.xs,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xs + 2,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.secondary,
   },
   replyText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.tertiary,
     fontStyle: 'italic',
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.primary,
     lineHeight: 22,
+    letterSpacing: -0.1,
   },
   reactionsContainer: {
     flexDirection: 'row',
@@ -719,9 +847,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     backgroundColor: Colors.bg.tertiary,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.full,
     borderWidth: 1,
     borderColor: Colors.border.secondary,
   },
@@ -730,18 +858,53 @@ const styles = StyleSheet.create({
     borderColor: Colors.accent.primary,
   },
   reactionEmoji: {
-    fontSize: 14,
+    fontSize: 13,
   },
   reactionCount: {
-    fontSize: 12,
-    fontFamily: 'Manrope_500Medium',
+    fontSize: 11,
+    fontFamily: 'Manrope_600SemiBold',
     color: Colors.text.secondary,
+  },
+  reactionCountActive: {
+    color: Colors.accent.primary,
   },
   messageActions: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.xs,
-    paddingLeft: Spacing.sm,
+    gap: Spacing.lg,
+    marginTop: Spacing.xs + 2,
+    paddingLeft: Spacing.xs,
+  },
+  messageActionBtn: {
+    padding: 2,
+  },
+  scrollButton: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    right: Spacing.lg,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.accent.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99,
+  },
+  scrollBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: Colors.status.error,
+    borderRadius: Radius.full,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'Manrope_700Bold',
   },
   replyingToContainer: {
     flexDirection: 'row',
@@ -779,9 +942,9 @@ const styles = StyleSheet.create({
     flex: 1,
     maxHeight: 100,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     backgroundColor: Colors.bg.tertiary,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border.primary,
     fontSize: 15,
@@ -793,26 +956,30 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.md,
-    backgroundColor: Colors.bg.tertiary,
+    borderRadius: Radius.full,
+    overflow: 'hidden',
+  },
+  sendButtonActive: {
+    backgroundColor: Colors.accent.primary,
   },
   sendButtonDisabled: {
+    backgroundColor: Colors.bg.tertiary,
     opacity: 0.5,
   },
   reactionPickerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   reactionPicker: {
     flexDirection: 'row',
     backgroundColor: Colors.bg.secondary,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     borderWidth: 1,
     borderColor: Colors.border.primary,
-    padding: Spacing.sm,
-    gap: Spacing.xs,
+    padding: Spacing.md,
+    gap: Spacing.sm,
     ...Shadows.lg,
   },
   reactionPickerButton: {
@@ -820,67 +987,44 @@ const styles = StyleSheet.create({
     height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bg.tertiary,
-  },
-  reactionPickerEmoji: {
-    fontSize: 28,
-  },
-});
-r',
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bg.tertiary,
-  },
-  reactionPickerEmoji: {
-    fontSize: 28,
-  },
-});
-ext.primary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: Radius.md,
     backgroundColor: Colors.bg.tertiary,
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
+  reactionPickerEmoji: {
+    fontSize: 28,
   },
-  reactionPickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reactionPicker: {
+  unreadDivider: {
     flexDirection: 'row',
-    backgroundColor: Colors.bg.secondary,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-    padding: Spacing.sm,
-    gap: Spacing.xs,
-    ...Shadows.lg,
-  },
-  reactionPickerButton: {
-    width: 48,
-    height: 48,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bg.tertiary,
+    marginVertical: Spacing.md,
   },
-  reactionPickerEmoji: {
-    fontSize: 28,
+  unreadDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 107, 107, 0.25)',
   },
-});
-r',
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.bg.tertiary,
+  unreadBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+    marginHorizontal: Spacing.sm,
   },
-  reactionPickerEmoji: {
-    fontSize: 28,
+  unreadDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.status.error,
+    marginRight: 6,
+  },
+  unreadText: {
+    fontSize: 10,
+    fontFamily: 'Manrope_700Bold',
+    color: Colors.status.error,
+    letterSpacing: 0.5,
   },
 });

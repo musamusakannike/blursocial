@@ -34,7 +34,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
       damping: 15,
       stiffness: 150,
     });
-    opacity.value = withTiming(1, { duration: 200 });
+    opacity.value = withTiming(1, { duration: 250 });
 
     return () => {
       translateY.value = withTiming(-100, { duration: 200 });
@@ -68,29 +68,16 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
     }
   };
 
-  const getBackgroundColor = () => {
-    switch (toast.type) {
-      case 'success':
-        return `${Colors.status.success}15`;
-      case 'error':
-        return `${Colors.status.error}15`;
-      case 'warning':
-        return `${Colors.status.warning}15`;
-      default:
-        return `${Colors.status.info}15`;
-    }
-  };
-
   const getBorderColor = () => {
     switch (toast.type) {
       case 'success':
-        return `${Colors.status.success}40`;
+        return 'rgba(78, 205, 196, 0.3)';
       case 'error':
-        return `${Colors.status.error}40`;
+        return 'rgba(255, 107, 107, 0.3)';
       case 'warning':
-        return `${Colors.status.warning}40`;
+        return 'rgba(255, 230, 109, 0.3)';
       default:
-        return `${Colors.status.info}40`;
+        return 'rgba(107, 157, 255, 0.3)';
     }
   };
 
@@ -100,7 +87,6 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
         styles.container,
         animatedStyle,
         {
-          backgroundColor: getBackgroundColor(),
           borderColor: getBorderColor(),
         },
       ]}
@@ -114,7 +100,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
         style={styles.closeButton}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <X size={18} color={Colors.text.secondary} strokeWidth={2} />
+        <X size={16} color={Colors.text.tertiary} strokeWidth={2.5} />
       </Pressable>
     </Animated.View>
   );
@@ -124,16 +110,17 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 4,
+    paddingHorizontal: Spacing.md + 2,
+    paddingVertical: Spacing.md - 2,
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
-    ...Shadows.md,
+    backgroundColor: 'rgba(18, 22, 26, 0.96)', // luxurious dark canvas base background
+    ...Shadows.lg,
   },
   iconContainer: {
-    marginRight: Spacing.sm + 4,
+    marginRight: Spacing.sm + 2,
   },
   message: {
     flex: 1,
@@ -141,10 +128,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     color: Colors.text.primary,
     lineHeight: 20,
+    letterSpacing: -0.1,
   },
   closeButton: {
     marginLeft: Spacing.sm,
-    padding: 4,
+    padding: 2,
   },
 });
 

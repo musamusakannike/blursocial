@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MessageCircle, ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+  withRepeat,
+} from 'react-native-reanimated';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import Card from '@/components/Card';
+import Logo from '@/components/Logo';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { useToast } from '@/contexts/ToastContext';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
@@ -27,6 +35,15 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Glow position animation
+  const glowTranslateX = useSharedValue(0);
+  const glowScale = useSharedValue(1);
+
+  useEffect(() => {
+    glowTranslateX.value = withRepeat(withTiming(-30, { duration: 6000 }), -1, true);
+    glowScale.value = withRepeat(withTiming(1.15, { duration: 8000 }), -1, true);
+  }, []);
 
   const handleRegister = async () => {
     if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -76,8 +93,21 @@ export default function RegisterScreen() {
     }
   };
 
+  const glowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: glowTranslateX.value }, { scale: glowScale.value }],
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Background ambient glow (Top-Left) */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Animated.View style={[styles.radialGlow, glowStyle]} />
+        <LinearGradient
+          colors={['transparent', Colors.bg.primary]}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -92,51 +122,54 @@ export default function RegisterScreen() {
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2} />
+            <ArrowLeft size={24} color={Colors.text.primary} strokeWidth={2.5} />
           </Pressable>
 
           <View style={styles.header}>
-            <LinearGradient
-              colors={[Colors.accent.primary, Colors.accent.secondary]}
-              style={styles.logo}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <MessageCircle size={32} color="#fff" strokeWidth={2.5} />
-            </LinearGradient>
+            <View style={styles.logoContainer}>
+              <Logo size="lg" />
+            </View>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join Blur and start chatting anonymously</Text>
           </View>
 
-          <View style={styles.form}>
-            <Input
-              label="Username"
-              placeholder="Choose a username"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Input
-              label="Password"
-              placeholder="Create a password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-            <Input
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-            <Button onPress={handleRegister} isLoading={isLoading} size="lg" style={styles.registerButton}>
-              Create Account
-            </Button>
-          </View>
+          {/* Form wrapped in an elevated premium card */}
+          <Card style={styles.formCard}>
+            <View style={styles.form}>
+              <Input
+                label="Username"
+                placeholder="Choose a username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Input
+                label="Password"
+                placeholder="Create a password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Input
+                label="Confirm Password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+              <Button
+                onPress={handleRegister}
+                isLoading={isLoading}
+                size="lg"
+                style={styles.registerButton}
+              >
+                Create Account
+              </Button>
+            </View>
+          </Card>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
@@ -155,6 +188,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg.primary,
   },
+  // Radial glow overlay at top-left
+  radialGlow: {
+    position: 'absolute',
+    top: -80,
+    left: -80,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(196, 69, 105, 0.12)', // coral/secondary pink glow
+  },
   keyboardView: {
     flex: 1,
   },
@@ -165,30 +208,32 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+    alignSelf: 'flex-start',
   },
   header: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
   },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+  logoContainer: {
+    marginBottom: Spacing.md,
   },
   title: {
     fontSize: 32,
     fontFamily: 'Manrope_700Bold',
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
+    letterSpacing: -0.8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
+    textAlign: 'center',
+  },
+  formCard: {
+    padding: Spacing.xl,
+    backgroundColor: 'rgba(18, 22, 26, 0.8)', // glassmorphism blend
   },
   form: {
     gap: Spacing.lg,
@@ -200,7 +245,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.xl,
+    marginTop: Spacing.xl + 10,
   },
   footerText: {
     fontSize: 14,

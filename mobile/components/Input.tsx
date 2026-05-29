@@ -4,8 +4,9 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  interpolateColor,
 } from 'react-native-reanimated';
-import { Colors, Radius, Spacing } from '@/constants/Colors';
+import { Colors, Radius, Spacing, Shadows } from '@/constants/Colors';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -14,29 +15,49 @@ interface InputProps extends TextInputProps {
 
 const Input: React.FC<InputProps> = ({ label, error, style, ...props }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const borderColor = useSharedValue(Colors.border.primary);
+  const focusProgress = useSharedValue(0);
 
   const handleFocus = () => {
     setIsFocused(true);
-    borderColor.value = withTiming(Colors.accent.primary, { duration: 200 });
+    focusProgress.value = withTiming(1, { duration: 250 });
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    borderColor.value = withTiming(
-      error ? Colors.status.error : Colors.border.primary,
-      { duration: 200 }
-    );
+    focusProgress.value = withTiming(0, { duration: 250 });
   };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    borderColor: borderColor.value,
-  }));
+  const containerAnimatedStyle = useAnimatedStyle(() => {
+    const borderColor = error
+      ? Colors.status.error
+      : interpolateColor(
+          focusProgress.value,
+          [0, 1],
+          [Colors.border.primary, Colors.accent.primary]
+        );
+
+    const shadowOpacity = error
+      ? 0.15
+      : focusProgress.value * 0.4; // animate shadow opacity between 0 and 0.4
+
+    return {
+      borderColor,
+      shadowColor: error ? Colors.status.error : Colors.accent.primary,
+      shadowOpacity,
+      shadowRadius: error ? 8 : focusProgress.value * 12,
+      shadowOffset: { width: 0, height: 0 },
+    };
+  });
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <Animated.View style={[styles.inputContainer, animatedStyle, error && styles.errorBorder]}>
+      <Animated.View
+        style={[
+          styles.inputContainer,
+          containerAnimatedStyle,
+        ]}
+      >
         <TextInput
           style={[styles.input, style]}
           placeholderTextColor={Colors.text.tertiary}
@@ -59,12 +80,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_500Medium',
     color: Colors.text.secondary,
     marginBottom: Spacing.sm,
+    letterSpacing: -0.1,
   },
   inputContainer: {
     backgroundColor: Colors.bg.secondary,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.border.primary,
+    elevation: 2, // backup for android elevation
   },
   input: {
     paddingHorizontal: Spacing.md,
@@ -72,9 +94,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.primary,
-  },
-  errorBorder: {
-    borderColor: Colors.status.error,
   },
   errorText: {
     fontSize: 12,

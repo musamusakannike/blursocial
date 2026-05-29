@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native'; // ← add ScrollView
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -8,9 +8,9 @@ import Animated, {
   withSpring,
   withDelay,
   withTiming,
+  withRepeat,
 } from 'react-native-reanimated';
 import {
-  MessageCircle,
   Lock,
   Users,
   Zap,
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Button from '@/components/Button';
+import Card from '@/components/Card';
+import Logo from '@/components/Logo';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { storage, STORAGE_KEYS } from '@/utils/storage';
 
@@ -25,34 +27,38 @@ type FeatureItem = {
   icon: LucideIcon;
   title: string;
   description: string;
+  isSpotlight?: boolean;
 };
 
 const features: FeatureItem[] = [
   {
     icon: Lock,
     title: 'Secure & Private',
-    description: 'Password-protected rooms ensure only invited participants can join',
+    description: 'Password-protected rooms ensure only invited participants can join.',
   },
   {
     icon: Users,
     title: 'Fully Anonymous',
-    description: 'No one knows who is speaking. Perfect for honest discussions',
+    description: 'No one knows who is speaking. Perfect for honest discussions.',
+    isSpotlight: true, // middle card is spotlight, matching web
   },
   {
     icon: Zap,
     title: 'Real-time Messaging',
-    description: 'Messages appear instantly for everyone in the room',
+    description: 'Messages appear instantly for everyone in the room.',
   },
 ];
 
 const FeatureCard: React.FC<{ feature: FeatureItem; index: number }> = ({ feature, index }) => {
-  const translateY = useSharedValue(30);
+  const translateY = useSharedValue(40);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    translateY.value = withDelay(800 + index * 150, withSpring(0, { damping: 15, stiffness: 150 }));
-    opacity.value = withDelay(800 + index * 150, withTiming(1, { duration: 400 }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    translateY.value = withDelay(
+      800 + index * 120,
+      withSpring(0, { damping: 18, stiffness: 120 })
+    );
+    opacity.value = withDelay(800 + index * 120, withTiming(1, { duration: 400 }));
   }, [index]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -63,14 +69,28 @@ const FeatureCard: React.FC<{ feature: FeatureItem; index: number }> = ({ featur
   const Icon = feature.icon;
 
   return (
-    <Animated.View style={[styles.featureCard, animatedStyle]}>
-      <View style={styles.featureIconContainer}>
-        <Icon size={24} color={Colors.accent.primary} strokeWidth={2} />
-      </View>
-      <View style={styles.featureContent}>
-        <Text style={styles.featureTitle}>{feature.title}</Text>
-        <Text style={styles.featureDescription}>{feature.description}</Text>
-      </View>
+    <Animated.View style={animatedStyle}>
+      <Card
+        variant={feature.isSpotlight ? 'spotlight' : 'default'}
+        style={styles.featureCard}
+      >
+        <View
+          style={[
+            styles.featureIconContainer,
+            feature.isSpotlight && styles.spotlightIconContainer,
+          ]}
+        >
+          <Icon
+            size={22}
+            color={feature.isSpotlight ? '#fff' : Colors.accent.primary}
+            strokeWidth={2.5}
+          />
+        </View>
+        <View style={styles.featureContent}>
+          <Text style={styles.featureTitle}>{feature.title}</Text>
+          <Text style={styles.featureDescription}>{feature.description}</Text>
+        </View>
+      </Card>
     </Animated.View>
   );
 };
@@ -79,17 +99,26 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
 
-  const logoScale = useSharedValue(0);
-  const logoOpacity = useSharedValue(0);
-  const titleY = useSharedValue(50);
-  const titleOpacity = useSharedValue(0);
-  const subtitleY = useSharedValue(50);
-  const subtitleOpacity = useSharedValue(0);
-  const buttonsY = useSharedValue(50);
-  const buttonsOpacity = useSharedValue(0);
+  // Background glow orb values
+  const orb1X = useSharedValue(0);
+  const orb1Y = useSharedValue(0);
+  const orb2X = useSharedValue(0);
+  const orb2Y = useSharedValue(0);
+
+  // Text / Content reveal values
+  const contentOpacity = useSharedValue(0);
+  const logoScale = useSharedValue(0.5);
+  const titleY = useSharedValue(30);
+  const subtitleY = useSharedValue(30);
+  const buttonsY = useSharedValue(35);
 
   useEffect(() => {
     checkAuth();
+    // Run ambient animations for background orbs
+    orb1X.value = withRepeat(withTiming(40, { duration: 9000 }), -1, true);
+    orb1Y.value = withRepeat(withTiming(-30, { duration: 11000 }), -1, true);
+    orb2X.value = withRepeat(withTiming(-30, { duration: 10000 }), -1, true);
+    orb2Y.value = withRepeat(withTiming(40, { duration: 8000 }), -1, true);
   }, []);
 
   const checkAuth = async () => {
@@ -108,73 +137,79 @@ export default function OnboardingScreen() {
   };
 
   const startAnimations = () => {
-    logoScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    logoOpacity.value = withTiming(1, { duration: 400 });
-
-    titleY.value = withDelay(200, withSpring(0, { damping: 15, stiffness: 150 }));
-    titleOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
-
-    subtitleY.value = withDelay(400, withSpring(0, { damping: 15, stiffness: 150 }));
-    subtitleOpacity.value = withDelay(400, withTiming(1, { duration: 400 }));
-
-    buttonsY.value = withDelay(600, withSpring(0, { damping: 15, stiffness: 150 }));
-    buttonsOpacity.value = withDelay(600, withTiming(1, { duration: 400 }));
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    logoScale.value = withSpring(1, { damping: 14, stiffness: 100 });
+    titleY.value = withDelay(150, withSpring(0, { damping: 16, stiffness: 120 }));
+    subtitleY.value = withDelay(300, withSpring(0, { damping: 16, stiffness: 120 }));
+    buttonsY.value = withDelay(500, withSpring(0, { damping: 16, stiffness: 120 }));
   };
+
+  const orb1Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: orb1X.value }, { translateY: orb1Y.value }],
+  }));
+
+  const orb2Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: orb2X.value }, { translateY: orb2Y.value }],
+  }));
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: logoScale.value }],
-    opacity: logoOpacity.value,
+    opacity: contentOpacity.value,
   }));
 
   const titleAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: titleY.value }],
-    opacity: titleOpacity.value,
+    opacity: contentOpacity.value,
   }));
 
   const subtitleAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: subtitleY.value }],
-    opacity: subtitleOpacity.value,
+    opacity: contentOpacity.value,
   }));
 
   const buttonsAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: buttonsY.value }],
-    opacity: buttonsOpacity.value,
+    opacity: contentOpacity.value,
   }));
 
   if (isChecking) {
     return (
       <View style={styles.loadingContainer}>
-        <MessageCircle size={48} color={Colors.accent.primary} strokeWidth={2} />
+        <LinearGradient
+          colors={[Colors.accent.primary, Colors.accent.secondary]}
+          style={styles.loadingLogo}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Logo size="lg" />
+        </LinearGradient>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <LinearGradient
-        colors={[`${Colors.accent.primary}20`, 'transparent']}
-        style={styles.gradient}
-      />
+      {/* Background orbs */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <Animated.View style={[styles.glowOrb1, orb1Style]} />
+        <Animated.View style={[styles.glowOrb2, orb2Style]} />
+        <LinearGradient
+          colors={['transparent', Colors.bg.primary]}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
 
-      {/* ↓ ScrollView replaces the plain View so content scrolls above the sticky buttons */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-          <LinearGradient
-            colors={[Colors.accent.primary, Colors.accent.secondary]}
-            style={styles.logo}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <MessageCircle size={40} color="#fff" strokeWidth={2.5} />
-          </LinearGradient>
+        <Animated.View style={[styles.logoWrapper, logoAnimatedStyle]}>
+          <Logo size="lg" />
         </Animated.View>
 
-        <Animated.View style={titleAnimatedStyle}>
+        <Animated.View style={[styles.headerTextContainer, titleAnimatedStyle]}>
           <Text style={styles.title}>
             Anonymous Chat{'\n'}
             <Text style={styles.titleAccent}>Made Simple</Text>
@@ -183,7 +218,7 @@ export default function OnboardingScreen() {
 
         <Animated.Text style={[styles.subtitle, subtitleAnimatedStyle]}>
           Create secure, password-protected chat rooms in seconds. Share the link, and chat
-          anonymously with anyone.
+          anonymously with absolute confidentiality.
         </Animated.Text>
 
         <View style={styles.featuresContainer}>
@@ -193,7 +228,7 @@ export default function OnboardingScreen() {
         </View>
       </ScrollView>
 
-      {/* Sticky button area sits outside the ScrollView so it's always visible */}
+      {/* Sticky button container at bottom */}
       <Animated.View style={[styles.buttonsContainer, buttonsAnimatedStyle]}>
         <Button onPress={() => router.push('/register')} size="lg" style={styles.button}>
           Create a Room
@@ -222,71 +257,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 400,
+  loadingLogo: {
+    width: 120,
+    height: 120,
+    borderRadius: Radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  // ↓ new: ScrollView takes up the space between top safe area and buttons
+  // Ambient floating glowing orbs
+  glowOrb1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(255, 107, 157, 0.12)',
+  },
+  glowOrb2: {
+    position: 'absolute',
+    top: 200,
+    left: -80,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(196, 69, 105, 0.08)',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,       // slightly tighter than xxl to reclaim space
-    paddingBottom: Spacing.xl,    // breathing room above the sticky buttons
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xl + 20,
   },
-  logoContainer: {
+  logoWrapper: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,     // tightened from xl
+    marginBottom: Spacing.lg,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: Radius.lg,
+  headerTextContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 36,
+    fontSize: 34,
     fontFamily: 'Manrope_700Bold',
     color: Colors.text.primary,
     textAlign: 'center',
-    marginBottom: Spacing.md,
-    lineHeight: 44,
+    lineHeight: 42,
+    letterSpacing: -0.8,
   },
   titleAccent: {
     color: Colors.accent.primary,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: Spacing.lg,    // tightened from xl
+    lineHeight: 22,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.sm,
   },
   featuresContainer: {
     gap: Spacing.md,
   },
   featureCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.bg.secondary,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border.primary,
-    padding: Spacing.md,
+    alignItems: 'center',
   },
   featureIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.md,
     backgroundColor: Colors.accent.glow,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,
+  },
+  spotlightIconContainer: {
+    backgroundColor: Colors.accent.primary,
   },
   featureContent: {
     flex: 1,
@@ -295,20 +345,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Manrope_600SemiBold',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   featureDescription: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontFamily: 'Manrope_400Regular',
     color: Colors.text.secondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   buttonsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
-    paddingTop: Spacing.sm,      // small top pad so content doesn't clip right at the edge
+    paddingTop: Spacing.sm,
     gap: Spacing.md,
-    backgroundColor: Colors.bg.primary, // matches screen bg so it looks "sticky"
+    backgroundColor: Colors.bg.primary,
   },
   button: {
     width: '100%',

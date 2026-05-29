@@ -171,16 +171,6 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Eyebrow */}
-              <motion.div
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--surface-1)] border border-[var(--border-primary)] text-xs text-[var(--text-secondary)] font-medium tracking-wide mb-8"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
-                Private by design
-              </motion.div>
 
               {/* Headline */}
               <motion.h1

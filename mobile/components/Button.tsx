@@ -4,7 +4,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { Colors, Radius, Shadows, Spacing } from '@/constants/Colors';
 import * as Haptics from 'expo-haptics';
@@ -15,7 +14,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 interface ButtonProps {
   onPress: () => void;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   disabled?: boolean;
@@ -36,8 +35,10 @@ const Button: React.FC<ButtonProps> = ({
   const scale = useSharedValue(1);
 
   const handlePressIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+    if (!disabled && !isLoading) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
+    }
   };
 
   const handlePressOut = () => {
@@ -81,7 +82,11 @@ const Button: React.FC<ButtonProps> = ({
 
   const renderContent = () => {
     if (isLoading) {
-      return <ActivityIndicator color={variant === 'primary' ? '#fff' : Colors.accent.primary} />;
+      return (
+        <ActivityIndicator
+          color={variant === 'primary' || variant === 'destructive' ? '#fff' : Colors.accent.primary}
+        />
+      );
     }
 
     return (
@@ -90,6 +95,7 @@ const Button: React.FC<ButtonProps> = ({
           styles.text,
           { fontSize: textSizes[size] },
           variant === 'primary' && styles.primaryText,
+          variant === 'destructive' && styles.destructiveText,
           variant === 'secondary' && styles.secondaryText,
           variant === 'ghost' && styles.ghostText,
           textStyle,
@@ -107,10 +113,30 @@ const Button: React.FC<ButtonProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled || isLoading}
-        style={[animatedStyle, styles.base, sizeStyles[size], disabled && styles.disabled, style]}
+        style={[animatedStyle, styles.base, styles.pill, sizeStyles[size], disabled && styles.disabled, style]}
       >
         <LinearGradient
           colors={[Colors.accent.primary, Colors.accent.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, styles.gradientBackground]}
+        />
+        {renderContent()}
+      </AnimatedPressable>
+    );
+  }
+
+  if (variant === 'destructive') {
+    return (
+      <AnimatedPressable
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || isLoading}
+        style={[animatedStyle, styles.base, styles.pill, sizeStyles[size], disabled && styles.disabled, style]}
+      >
+        <LinearGradient
+          colors={[Colors.status.error, '#C43535']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[StyleSheet.absoluteFillObject, styles.gradientBackground]}
@@ -129,6 +155,7 @@ const Button: React.FC<ButtonProps> = ({
       style={[
         animatedStyle,
         styles.base,
+        variant === 'secondary' ? styles.pill : styles.rect,
         sizeStyles[size],
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
@@ -143,10 +170,15 @@ const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  pill: {
+    borderRadius: Radius.full,
+  },
+  rect: {
+    borderRadius: Radius.md,
   },
   gradientBackground: {
     alignItems: 'center',
@@ -154,9 +186,10 @@ const styles = StyleSheet.create({
     ...Shadows.md,
   },
   secondary: {
-    backgroundColor: Colors.bg.elevated,
+    backgroundColor: Colors.bg.secondary,
     borderWidth: 1,
     borderColor: Colors.border.primary,
+    ...Shadows.sm,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -166,8 +199,12 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: 'Manrope_600SemiBold',
+    letterSpacing: -0.2,
   },
   primaryText: {
+    color: '#fff',
+  },
+  destructiveText: {
     color: '#fff',
   },
   secondaryText: {
